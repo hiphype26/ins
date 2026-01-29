@@ -227,7 +227,7 @@
                     <h2>Settings</h2>
                 </div>
                 <div class="settings-container">
-                    <!-- Maintenance Mode -->
+                    <!-- System Status -->
                     <div class="settings-section">
                         <h3>System Status</h3>
                         <div class="setting-item">
@@ -237,6 +237,26 @@
                             </div>
                             <label class="toggle">
                                 <input type="checkbox" id="maintenance-mode-toggle" onchange="toggleMaintenanceMode()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Stop Volna Data Fetching</span>
+                                <span class="setting-description">When enabled, stops fetching new jobs from Volna API</span>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="volna-stopped-toggle" onchange="toggleVolnaStopped()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Stop Upwork Processing</span>
+                                <span class="setting-description">When enabled, stops processing jobs from queue (Upwork API calls)</span>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="upwork-stopped-toggle" onchange="toggleUpworkStopped()">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>

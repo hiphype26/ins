@@ -25,7 +25,8 @@ async function getVolnaConfig() {
           'volna_auto_fetch',
           'volna_fetch_interval',
           'volna_auto_add',
-          'maintenance_mode'
+          'maintenance_mode',
+          'volna_stopped'
         ]
       }
     }
@@ -46,7 +47,8 @@ async function getVolnaConfig() {
     autoFetch: getVal('volna_auto_fetch') === 'true',
     fetchInterval: parseInt(getVal('volna_fetch_interval')) || 5,
     autoAdd: getVal('volna_auto_add') === 'true',
-    maintenanceMode: getVal('maintenance_mode') === 'true'
+    maintenanceMode: getVal('maintenance_mode') === 'true',
+    volnaStopped: getVal('volna_stopped') === 'true'
   };
 }
 
@@ -131,8 +133,8 @@ async function runFetchCycle(): Promise<void> {
   try {
     const config = await getVolnaConfig();
     
-    // Check if auto-fetch is enabled and not in maintenance mode
-    if (!config.autoFetch || config.maintenanceMode) {
+    // Check if auto-fetch is enabled and not in maintenance mode or stopped
+    if (!config.autoFetch || config.maintenanceMode || config.volnaStopped) {
       schedulNextFetch(config.fetchInterval);
       return;
     }

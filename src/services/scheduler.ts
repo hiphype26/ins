@@ -15,7 +15,7 @@ async function loadSettings(): Promise<void> {
     const settings = await prismaInstance.settings.findMany({
       where: {
         key: {
-          in: ['upwork_rate_limit', 'min_interval', 'max_interval', 'maintenance_mode']
+          in: ['upwork_rate_limit', 'min_interval', 'max_interval', 'maintenance_mode', 'upwork_stopped']
         }
       }
     });
@@ -61,6 +61,18 @@ async function isMaintenanceMode(): Promise<boolean> {
   try {
     const setting = await prismaInstance.settings.findUnique({
       where: { key: 'maintenance_mode' }
+    });
+    return setting?.value === 'true';
+  } catch (error) {
+    return false;
+  }
+}
+
+// Check if Upwork processing is stopped
+async function isUpworkStopped(): Promise<boolean> {
+  try {
+    const setting = await prismaInstance.settings.findUnique({
+      where: { key: 'upwork_stopped' }
     });
     return setting?.value === 'true';
   } catch (error) {
@@ -120,8 +132,8 @@ async function processNextJob(): Promise<void> {
   if (!isRunning) return;
   
   try {
-    // Check maintenance mode
-    if (await isMaintenanceMode()) {
+    // Check maintenance mode or if Upwork processing is stopped
+    if (await isMaintenanceMode() || await isUpworkStopped()) {
       setTimeout(processNextJob, 30000); // Check again in 30 seconds
       return;
     }

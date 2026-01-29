@@ -651,6 +651,12 @@ async function loadSettings() {
                 case 'maintenance_mode':
                     document.getElementById('maintenance-mode-toggle').checked = setting.value === 'true';
                     break;
+                case 'volna_stopped':
+                    document.getElementById('volna-stopped-toggle').checked = setting.value === 'true';
+                    break;
+                case 'upwork_stopped':
+                    document.getElementById('upwork-stopped-toggle').checked = setting.value === 'true';
+                    break;
                 case 'upwork_rate_limit':
                     document.getElementById('upwork-rate-limit').value = setting.value;
                     break;
@@ -725,6 +731,44 @@ async function toggleMaintenanceMode() {
         showToast('Failed to update maintenance mode', 'error');
         // Revert toggle
         document.getElementById('maintenance-mode-toggle').checked = !isEnabled;
+    }
+}
+
+async function toggleVolnaStopped() {
+    const isStopped = document.getElementById('volna-stopped-toggle').checked;
+    
+    try {
+        await api('/settings', {
+            method: 'POST',
+            body: JSON.stringify({
+                key: 'volna_stopped',
+                value: isStopped.toString()
+            })
+        });
+        
+        showToast(`Volna data fetching ${isStopped ? 'stopped' : 'resumed'}`, 'success');
+    } catch (error) {
+        showToast('Failed to update Volna status', 'error');
+        document.getElementById('volna-stopped-toggle').checked = !isStopped;
+    }
+}
+
+async function toggleUpworkStopped() {
+    const isStopped = document.getElementById('upwork-stopped-toggle').checked;
+    
+    try {
+        await api('/settings', {
+            method: 'POST',
+            body: JSON.stringify({
+                key: 'upwork_stopped',
+                value: isStopped.toString()
+            })
+        });
+        
+        showToast(`Upwork processing ${isStopped ? 'stopped' : 'resumed'}`, 'success');
+    } catch (error) {
+        showToast('Failed to update Upwork status', 'error');
+        document.getElementById('upwork-stopped-toggle').checked = !isStopped;
     }
 }
 
