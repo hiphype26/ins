@@ -40,6 +40,11 @@ async function getCachedOrFetch(apiKey: string, filterId: string): Promise<any[]
     }
   );
   
+  // Debug: log first project to see field names
+  if (response.data.data && response.data.data.length > 0) {
+    console.log('Volna API sample project fields:', Object.keys(response.data.data[0]));
+  }
+  
   const data = response.data.data || [];
   
   // Cache the result
@@ -134,22 +139,22 @@ router.get('/jobs', authenticateToken, async (req: Request, res: Response) => {
       try {
         const rawProjects = await getCachedOrFetch(config.apiKey, filterId);
         
-        // Transform projects
+        // Transform projects (handle both camelCase and snake_case field names)
         return rawProjects.map((project: any) => ({
           filter_id: filterId,
           title: project.title,
           description: project.description,
           skills: project.skills,
-          url: project.url,
-          published_at: project.publishedAt,
-          budget_type: project.budget?.type,
-          budget_amount: project.budget?.amount,
-          client_country: project.clientDetails?.country,
-          client_total_spent: project.clientDetails?.totalSpent,
-          client_total_hires: project.clientDetails?.totalHires,
-          client_rating: project.clientDetails?.rating,
-          client_reviews: project.clientDetails?.reviews,
-          client_verified: project.clientDetails?.paymentMethodVerified
+          url: project.url || project.link || project.project_url,
+          published_at: project.published_at || project.publishedAt || project.created_at,
+          budget_type: project.budget?.type || project.budget_type,
+          budget_amount: project.budget?.amount || project.budget_amount,
+          client_country: project.clientDetails?.country || project.client_country || project.country,
+          client_total_spent: project.clientDetails?.totalSpent || project.client_total_spent,
+          client_total_hires: project.clientDetails?.totalHires || project.client_total_hires,
+          client_rating: project.clientDetails?.rating || project.client_rating,
+          client_reviews: project.clientDetails?.reviews || project.client_reviews,
+          client_verified: project.clientDetails?.paymentMethodVerified || project.client_verified || project.payment_verified
         }));
       } catch (filterError: any) {
         console.error(`Failed to fetch from filter ${filterId}:`, filterError.message);
