@@ -26,7 +26,11 @@ async function getVolnaConfig() {
           'volna_fetch_interval',
           'volna_auto_add',
           'maintenance_mode',
-          'volna_stopped'
+          'volna_stopped',
+          'working_hours_enabled',
+          'working_hours_start',
+          'working_hours_end',
+          'working_days'
         ]
       }
     }
@@ -48,8 +52,38 @@ async function getVolnaConfig() {
     fetchInterval: parseInt(getVal('volna_fetch_interval')) || 5,
     autoAdd: getVal('volna_auto_add') === 'true',
     maintenanceMode: getVal('maintenance_mode') === 'true',
-    volnaStopped: getVal('volna_stopped') === 'true'
+    volnaStopped: getVal('volna_stopped') === 'true',
+    workingHoursEnabled: getVal('working_hours_enabled') === 'true',
+    workingHoursStart: getVal('working_hours_start') || '09:00',
+    workingHoursEnd: getVal('working_hours_end') || '18:00',
+    workingDays: getVal('working_days') || '1,2,3,4,5'
   };
+}
+
+// Check if current time is within working hours
+function isWithinWorkingHours(config: any): boolean {
+  if (!config.workingHoursEnabled) {
+    return true;
+  }
+  
+  const workingDays = config.workingDays.split(',').map((d: string) => parseInt(d));
+  
+  const now = new Date();
+  const currentDay = now.getDay();
+  
+  // Check if today is a working day
+  if (!workingDays.includes(currentDay)) {
+    return false;
+  }
+  
+  // Check if current time is within working hours
+  const currentTime = now.getHours() * 60 + now.getMinutes();
+  const [startHour, startMin] = config.workingHoursStart.split(':').map((n: string) => parseInt(n));
+  const [endHour, endMin] = config.workingHoursEnd.split(':').map((n: string) => parseInt(n));
+  const startMinutes = startHour * 60 + startMin;
+  const endMinutes = endHour * 60 + endMin;
+  
+  return currentTime >= startMinutes && currentTime < endMinutes;
 }
 
 // Fetch projects from a single filter (with caching)
@@ -135,6 +169,12 @@ async function runFetchCycle(): Promise<void> {
     
     // Check if auto-fetch is enabled and not in maintenance mode or stopped
     if (!config.autoFetch || config.maintenanceMode || config.volnaStopped) {
+      schedulNextFetch(config.fetchInterval);
+      return;
+    }
+    
+    // Check working hours
+    if (!isWithinWorkingHours(config)) {
       schedulNextFetch(config.fetchInterval);
       return;
     }

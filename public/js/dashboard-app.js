@@ -740,6 +740,22 @@ async function loadSettings() {
                 case 'volna_auto_add':
                     document.getElementById('volna-auto-add-toggle').checked = setting.value === 'true';
                     break;
+                case 'working_hours_enabled':
+                    document.getElementById('working-hours-enabled-toggle').checked = setting.value === 'true';
+                    break;
+                case 'working_hours_start':
+                    document.getElementById('working-hours-start').value = setting.value || '09:00';
+                    break;
+                case 'working_hours_end':
+                    document.getElementById('working-hours-end').value = setting.value || '18:00';
+                    break;
+                case 'working_days':
+                    // Parse working days (e.g., "1,2,3,4,5" for Mon-Fri)
+                    const days = setting.value ? setting.value.split(',') : ['1','2','3','4','5'];
+                    for (let i = 0; i < 7; i++) {
+                        document.getElementById(`working-day-${i}`).checked = days.includes(i.toString());
+                    }
+                    break;
             }
         });
     } catch (error) {
@@ -814,6 +830,14 @@ async function toggleUpworkStopped() {
 }
 
 async function saveSettings() {
+    // Get working days as comma-separated string
+    const workingDays = [];
+    for (let i = 0; i < 7; i++) {
+        if (document.getElementById(`working-day-${i}`).checked) {
+            workingDays.push(i.toString());
+        }
+    }
+    
     const settings = [
         { key: 'upwork_rate_limit', value: document.getElementById('upwork-rate-limit').value },
         { key: 'min_interval', value: document.getElementById('min-interval').value },
@@ -828,7 +852,11 @@ async function saveSettings() {
         { key: 'volna_filter_id_4', value: document.getElementById('volna-filter-id-4').value },
         { key: 'volna_auto_fetch', value: document.getElementById('volna-auto-fetch-toggle').checked.toString() },
         { key: 'volna_fetch_interval', value: document.getElementById('volna-fetch-interval').value },
-        { key: 'volna_auto_add', value: document.getElementById('volna-auto-add-toggle').checked.toString() }
+        { key: 'volna_auto_add', value: document.getElementById('volna-auto-add-toggle').checked.toString() },
+        { key: 'working_hours_enabled', value: document.getElementById('working-hours-enabled-toggle').checked.toString() },
+        { key: 'working_hours_start', value: document.getElementById('working-hours-start').value },
+        { key: 'working_hours_end', value: document.getElementById('working-hours-end').value },
+        { key: 'working_days', value: workingDays.join(',') }
     ];
     
     try {

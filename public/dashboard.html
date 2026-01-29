@@ -262,6 +262,50 @@
                         </div>
                     </div>
 
+                    <!-- Working Hours -->
+                    <div class="settings-section">
+                        <h3>Working Hours</h3>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Enable Working Hours</span>
+                                <span class="setting-description">Only process jobs during specified hours</span>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="working-hours-enabled-toggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Start Time</span>
+                                <span class="setting-description">When to start processing (24-hour format)</span>
+                            </div>
+                            <input type="time" id="working-hours-start" class="input input-small" value="09:00">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">End Time</span>
+                                <span class="setting-description">When to stop processing (24-hour format)</span>
+                            </div>
+                            <input type="time" id="working-hours-end" class="input input-small" value="18:00">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Working Days</span>
+                                <span class="setting-description">Select days when the system should work</span>
+                            </div>
+                            <div class="working-days-grid">
+                                <label class="day-checkbox"><input type="checkbox" id="working-day-0"> Sun</label>
+                                <label class="day-checkbox"><input type="checkbox" id="working-day-1" checked> Mon</label>
+                                <label class="day-checkbox"><input type="checkbox" id="working-day-2" checked> Tue</label>
+                                <label class="day-checkbox"><input type="checkbox" id="working-day-3" checked> Wed</label>
+                                <label class="day-checkbox"><input type="checkbox" id="working-day-4" checked> Thu</label>
+                                <label class="day-checkbox"><input type="checkbox" id="working-day-5" checked> Fri</label>
+                                <label class="day-checkbox"><input type="checkbox" id="working-day-6"> Sat</label>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Rate Limits -->
                     <div class="settings-section">
                         <h3>Rate Limits</h3>

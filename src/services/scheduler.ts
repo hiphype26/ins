@@ -80,6 +80,51 @@ async function isUpworkStopped(): Promise<boolean> {
   }
 }
 
+// Check if current time is within working hours
+async function isWithinWorkingHours(): Promise<boolean> {
+  try {
+    const settings = await prismaInstance.settings.findMany({
+      where: {
+        key: {
+          in: ['working_hours_enabled', 'working_hours_start', 'working_hours_end', 'working_days']
+        }
+      }
+    });
+    
+    const getVal = (key: string) => settings.find(s => s.key === key)?.value || '';
+    
+    // If working hours not enabled, always return true
+    if (getVal('working_hours_enabled') !== 'true') {
+      return true;
+    }
+    
+    const startTime = getVal('working_hours_start') || '09:00';
+    const endTime = getVal('working_hours_end') || '18:00';
+    const workingDaysStr = getVal('working_days') || '1,2,3,4,5';
+    const workingDays = workingDaysStr.split(',').map(d => parseInt(d));
+    
+    const now = new Date();
+    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    
+    // Check if today is a working day
+    if (!workingDays.includes(currentDay)) {
+      return false;
+    }
+    
+    // Check if current time is within working hours
+    const currentTime = now.getHours() * 60 + now.getMinutes(); // Minutes since midnight
+    const [startHour, startMin] = startTime.split(':').map(n => parseInt(n));
+    const [endHour, endMin] = endTime.split(':').map(n => parseInt(n));
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+    
+    return currentTime >= startMinutes && currentTime < endMinutes;
+  } catch (error) {
+    console.error('Error checking working hours:', error);
+    return true; // Default to allowing if error
+  }
+}
+
 // Get random interval between min and max with occasional longer pauses
 function getRandomInterval(): number {
   const baseInterval = Math.floor(Math.random() * (MAX_INTERVAL - MIN_INTERVAL)) + MIN_INTERVAL;
@@ -135,6 +180,12 @@ async function processNextJob(): Promise<void> {
     // Check maintenance mode or if Upwork processing is stopped
     if (await isMaintenanceMode() || await isUpworkStopped()) {
       setTimeout(processNextJob, 30000); // Check again in 30 seconds
+      return;
+    }
+    
+    // Check working hours
+    if (!(await isWithinWorkingHours())) {
+      setTimeout(processNextJob, 60000); // Check again in 1 minute
       return;
     }
     
