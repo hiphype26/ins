@@ -10,6 +10,7 @@ import settingsRoutes from './routes/settings';
 import volnaRoutes from './routes/volna';
 import { startScheduler } from './services/scheduler';
 import { startVolnaScheduler } from './services/volnaScheduler';
+import { startTokenRefreshScheduler } from './services/tokenRefreshScheduler';
 
 dotenv.config();
 
@@ -62,6 +63,9 @@ app.listen(PORT, () => {
   
   // Start the Volna auto-fetch scheduler
   startVolnaScheduler(prisma);
+  
+  // Start token refresh scheduler to keep Upwork tokens alive
+  startTokenRefreshScheduler(prisma);
 });
 
 // Graceful shutdown
