@@ -171,9 +171,20 @@ export async function refreshUpworkToken(prisma: PrismaClient, userId: string): 
       }
     });
     
+    console.log('Upwork token refreshed successfully');
     return access_token;
-  } catch (error) {
-    console.error('Token refresh failed:', error);
+  } catch (error: any) {
+    console.error('Token refresh failed:', error.response?.data || error.message);
+    
+    // If refresh token is invalid/expired, delete the stored token
+    // This forces user to reconnect
+    if (error.response?.status === 401 || error.response?.status === 400) {
+      console.log('Refresh token expired - deleting stored token');
+      await prisma.upworkToken.delete({
+        where: { userId }
+      }).catch(() => {}); // Ignore if already deleted
+    }
+    
     return null;
   }
 }
