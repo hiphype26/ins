@@ -1,12 +1,72 @@
 import { PrismaClient } from '@prisma/client';
 import { fetchJobDetails } from './upworkClient';
 
-const MIN_INTERVAL = 72000;   // 72 seconds (50 per hour = 72 sec each)
-const MAX_INTERVAL = 120000;  // 120 seconds (random spread)
-const MAX_PER_HOUR = 50;
+// Default values (can be overridden by settings)
+let MIN_INTERVAL = 72000;   // 72 seconds (50 per hour = 72 sec each)
+let MAX_INTERVAL = 120000;  // 120 seconds (random spread)
+let MAX_PER_HOUR = 50;
 
 let isRunning = false;
 let prismaInstance: PrismaClient;
+
+// Load settings from database
+async function loadSettings(): Promise<void> {
+  try {
+    const settings = await prismaInstance.settings.findMany({
+      where: {
+        key: {
+          in: ['upwork_rate_limit', 'min_interval', 'max_interval', 'maintenance_mode']
+        }
+      }
+    });
+    
+    let changed = false;
+    for (const setting of settings) {
+      switch (setting.key) {
+        case 'upwork_rate_limit':
+          const newMaxPerHour = parseInt(setting.value) || 50;
+          if (newMaxPerHour !== MAX_PER_HOUR) {
+            MAX_PER_HOUR = newMaxPerHour;
+            changed = true;
+          }
+          break;
+        case 'min_interval':
+          const newMinInterval = (parseInt(setting.value) || 72) * 1000;
+          if (newMinInterval !== MIN_INTERVAL) {
+            MIN_INTERVAL = newMinInterval;
+            changed = true;
+          }
+          break;
+        case 'max_interval':
+          const newMaxInterval = (parseInt(setting.value) || 120) * 1000;
+          if (newMaxInterval !== MAX_INTERVAL) {
+            MAX_INTERVAL = newMaxInterval;
+            changed = true;
+          }
+          break;
+      }
+    }
+    
+    // Only log when settings actually change
+    if (changed) {
+      console.log(`Scheduler settings updated: MAX_PER_HOUR=${MAX_PER_HOUR}, MIN_INTERVAL=${MIN_INTERVAL/1000}s, MAX_INTERVAL=${MAX_INTERVAL/1000}s`);
+    }
+  } catch (error) {
+    console.error('Failed to load scheduler settings:', error);
+  }
+}
+
+// Check if maintenance mode is enabled
+async function isMaintenanceMode(): Promise<boolean> {
+  try {
+    const setting = await prismaInstance.settings.findUnique({
+      where: { key: 'maintenance_mode' }
+    });
+    return setting?.value === 'true';
+  } catch (error) {
+    return false;
+  }
+}
 
 // Get random interval between min and max
 function getRandomInterval(): number {
@@ -42,11 +102,28 @@ async function incrementRateLimit(): Promise<void> {
   });
 }
 
+// Track when we last loaded settings
+let lastSettingsLoad = 0;
+const SETTINGS_RELOAD_INTERVAL = 60000; // Reload settings every 60 seconds
+
 // Process the next job in queue
 async function processNextJob(): Promise<void> {
   if (!isRunning) return;
   
   try {
+    // Check maintenance mode
+    if (await isMaintenanceMode()) {
+      setTimeout(processNextJob, 30000); // Check again in 30 seconds
+      return;
+    }
+    
+    // Reload settings periodically (not every cycle)
+    const now = Date.now();
+    if (now - lastSettingsLoad > SETTINGS_RELOAD_INTERVAL) {
+      await loadSettings();
+      lastSettingsLoad = now;
+    }
+    
     // Check rate limit
     const canProcess = await checkRateLimit();
     if (!canProcess) {
@@ -116,9 +193,33 @@ async function processNextJob(): Promise<void> {
 }
 
 // Start the scheduler
-export function startScheduler(prisma: PrismaClient): void {
+export async function startScheduler(prisma: PrismaClient): Promise<void> {
   prismaInstance = prisma;
   isRunning = true;
+  lastSettingsLoad = Date.now();
+  
+  // Load initial settings (force log on startup)
+  const settings = await prismaInstance.settings.findMany({
+    where: {
+      key: {
+        in: ['upwork_rate_limit', 'min_interval', 'max_interval']
+      }
+    }
+  });
+  
+  for (const setting of settings) {
+    switch (setting.key) {
+      case 'upwork_rate_limit':
+        MAX_PER_HOUR = parseInt(setting.value) || 50;
+        break;
+      case 'min_interval':
+        MIN_INTERVAL = (parseInt(setting.value) || 72) * 1000;
+        break;
+      case 'max_interval':
+        MAX_INTERVAL = (parseInt(setting.value) || 120) * 1000;
+        break;
+    }
+  }
   
   // Clean up old rate limit records (older than 2 hours)
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);

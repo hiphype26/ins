@@ -22,3 +22,6 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     return res.status(401).json({ error: 'Invalid token' });
   }
 };
+
+// Alias for compatibility
+export const authenticateToken = authMiddleware;

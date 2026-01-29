@@ -1,32 +1,16 @@
-import Bull from 'bull';
-import Redis from 'ioredis';
+// Simple in-memory job queue (no Redis required)
+// Jobs are stored in the database with status, processed by the scheduler
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
-
-// Create Redis connection
-const redisClient = new Redis(REDIS_URL);
-
-// Create Bull queue
-export const jobQueue = new Bull('upwork-jobs', REDIS_URL, {
-  defaultJobOptions: {
-    removeOnComplete: true,
-    removeOnFail: false,
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 60000 // 1 minute
-    }
-  }
-});
-
-// Add job to queue
+// Add job to queue (job is already in database with 'queued' status)
+// This function is kept for API compatibility but does nothing since
+// the scheduler picks up jobs directly from the database
 export async function addJobToQueue(jobId: string): Promise<void> {
-  await jobQueue.add({ jobId }, { jobId });
+  // No-op: jobs are managed in the database by the scheduler
+  console.log(`Job ${jobId} added to processing queue`);
 }
 
-// Get queue length
+// Get queue length - this would need a database query
+// but is not used in the current implementation
 export async function getQueueLength(): Promise<number> {
-  return await jobQueue.count();
+  return 0;
 }
-
-export { redisClient };

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Fetcher - Dashboard</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1 class="logo">Job Fetcher</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="#job-data" class="nav-item" data-page="job-data">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-text">Job Data</span>
+                </a>
+                <a href="#test-page" class="nav-item" data-page="test-page">
+                    <span class="nav-icon">🧪</span>
+                    <span class="nav-text">Test Page</span>
+                </a>
+                <a href="#volna-test" class="nav-item" data-page="volna-test">
+                    <span class="nav-icon">🌊</span>
+                    <span class="nav-text">Volna Test</span>
+                </a>
+                <a href="#settings" class="nav-item" data-page="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <span id="user-email">user@email.com</span>
+                </div>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div class="page" id="page-dashboard">
+                <div class="page-header">
+                    <h2>Dashboard</h2>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🔗</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stat-upwork-status">-</span>
+                            <span class="stat-label">Upwork Status</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📥</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stat-queued">0</span>
+                            <span class="stat-label">Queued Jobs</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stat-processing">0</span>
+                            <span class="stat-label">Processing</span>
+                        </div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stat-completed">0</span>
+                            <span class="stat-label">Completed</span>
+                        </div>
+                    </div>
+                    <div class="stat-card error">
+                        <div class="stat-icon">❌</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stat-failed">0</span>
+                            <span class="stat-label">Failed</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏱️</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stat-rate-limit">0/50</span>
+                            <span class="stat-label">Rate Limit (hour)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="maintenance-banner" id="maintenance-banner" style="display: none;">
+                    <span class="maintenance-icon">🔧</span>
+                    <span>Maintenance Mode is ON - All data fetching is paused</span>
+                </div>
+
+                <!-- Volna Stats Section -->
+                <div class="section-header">
+                    <h3>Volna Filter Stats</h3>
+                </div>
+                <div class="volna-filter-stats" id="volna-filter-stats">
+                    <!-- Will be populated dynamically -->
+                    <div class="filter-stat-card">
+                        <div class="filter-stat-header">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job Data Page -->
+            <div class="page hidden" id="page-job-data">
+                <div class="page-header">
+                    <h2>Job Data</h2>
+                    <button class="btn btn-primary" onclick="refreshJobData()">Refresh</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="job-data-table">
+                        <thead>
+                            <tr>
+                                <th>URL</th>
+                                <th>Title</th>
+                                <th>City</th>
+                                <th>Country</th>
+                                <th>Rating</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="job-data-body">
+                            <!-- Data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="empty-state" id="job-data-empty" style="display: none;">
+                    <span class="empty-icon">📭</span>
+                    <p>No job data available</p>
+                </div>
+            </div>
+
+            <!-- Test Page -->
+            <div class="page hidden" id="page-test-page">
+                <div class="page-header">
+                    <h2>Test Page - Fetch Job Details</h2>
+                </div>
+                <div class="test-form-container">
+                    <div class="form-group">
+                        <label for="job-url-input">Enter Upwork Job URL</label>
+                        <textarea 
+                            id="job-url-input" 
+                            class="input textarea" 
+                            placeholder="https://www.upwork.com/jobs/~01234567890123456789"
+                            rows="3"
+                        ></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="submitTestJob()">
+                        <span id="test-submit-text">Fetch Job Details</span>
+                        <span id="test-submit-loading" class="hidden">Loading...</span>
+                    </button>
+                </div>
+                <div class="test-result-container hidden" id="test-result-container">
+                    <h3>Job Details</h3>
+                    <div class="result-grid" id="test-result-grid">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Volna Test Page -->
+            <div class="page hidden" id="page-volna-test">
+                <div class="page-header">
+                    <h2>Volna Test - Job URLs</h2>
+                    <div class="header-actions">
+                        <div class="auto-refresh-toggle">
+                            <label class="toggle-inline">
+                                <input type="checkbox" id="volna-auto-refresh" onchange="toggleVolnaAutoRefresh()">
+                                <span class="toggle-slider-small"></span>
+                            </label>
+                            <span class="toggle-label">Auto-refresh</span>
+                        </div>
+                        <button class="btn btn-primary" onclick="fetchVolnaJobs()">
+                            <span id="volna-fetch-text">Fetch Jobs from Volna</span>
+                            <span id="volna-fetch-loading" class="hidden">Loading...</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="volna-status-bar" id="volna-status-bar">
+                    <span class="status-item">
+                        <span class="status-label">Last fetched:</span>
+                        <span class="status-value" id="volna-last-fetch">Never</span>
+                    </span>
+                    <span class="status-item">
+                        <span class="status-label">Projects:</span>
+                        <span class="status-value" id="volna-project-count">0</span>
+                    </span>
+                    <span class="status-item" id="volna-next-refresh-container" style="display: none;">
+                        <span class="status-label">Next refresh:</span>
+                        <span class="status-value" id="volna-next-refresh">-</span>
+                    </span>
+                </div>
+                <div class="volna-results" id="volna-results">
+                    <div class="empty-state">
+                        <span class="empty-icon">🌊</span>
+                        <p>Click "Fetch Jobs from Volna" to get job URLs</p>
+                    </div>
+                </div>
+                <div class="pagination" id="volna-pagination" style="display: none;">
+                    <button class="btn btn-secondary btn-small" id="volna-prev-btn" onclick="volnaChangePage(-1)" disabled>
+                        ← Previous
+                    </button>
+                    <span class="pagination-info">
+                        Page <span id="volna-current-page">1</span> of <span id="volna-total-pages">1</span>
+                        (<span id="volna-total-items">0</span> projects)
+                    </span>
+                    <button class="btn btn-secondary btn-small" id="volna-next-btn" onclick="volnaChangePage(1)" disabled>
+                        Next →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div class="page hidden" id="page-settings">
+                <div class="page-header">
+                    <h2>Settings</h2>
+                </div>
+                <div class="settings-container">
+                    <!-- Maintenance Mode -->
+                    <div class="settings-section">
+                        <h3>System Status</h3>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Maintenance Mode</span>
+                                <span class="setting-description">When enabled, all data fetching from Volna and Upwork will be paused</span>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="maintenance-mode-toggle" onchange="toggleMaintenanceMode()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Rate Limits -->
+                    <div class="settings-section">
+                        <h3>Rate Limits</h3>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Upwork Max Requests per Hour</span>
+                                <span class="setting-description">Maximum number of API requests to Upwork per hour</span>
+                            </div>
+                            <input type="number" id="upwork-rate-limit" class="input input-small" value="50" min="1" max="100">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Min Interval (seconds)</span>
+                                <span class="setting-description">Minimum time between requests</span>
+                            </div>
+                            <input type="number" id="min-interval" class="input input-small" value="72" min="10" max="300">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Max Interval (seconds)</span>
+                                <span class="setting-description">Maximum time between requests</span>
+                            </div>
+                            <input type="number" id="max-interval" class="input input-small" value="120" min="10" max="600">
+                        </div>
+                    </div>
+
+                    <!-- API Keys -->
+                    <div class="settings-section">
+                        <h3>API Keys</h3>
+                        <div class="setting-item vertical">
+                            <label class="setting-label">Upwork Client ID</label>
+                            <input type="text" id="upwork-client-id" class="input" placeholder="Your Upwork Client ID">
+                        </div>
+                        <div class="setting-item vertical">
+                            <label class="setting-label">Upwork Client Secret</label>
+                            <input type="password" id="upwork-client-secret" class="input" placeholder="Your Upwork Client Secret">
+                        </div>
+                        <div class="setting-item vertical">
+                            <label class="setting-label">Upwork Redirect URI</label>
+                            <input type="text" id="upwork-redirect-uri" class="input" placeholder="https://your-app.com/api/upwork/callback">
+                        </div>
+                        <div class="setting-item vertical">
+                            <label class="setting-label">Volna API Token</label>
+                            <input type="password" id="volna-api-key" class="input" placeholder="Your Volna API Token">
+                        </div>
+                        <div class="setting-item vertical">
+                            <label class="setting-label">Volna Filter IDs (up to 4)</label>
+                            <div class="filter-ids-grid">
+                                <input type="text" id="volna-filter-id-1" class="input" placeholder="Filter ID 1 (e.g., 14731)">
+                                <input type="text" id="volna-filter-id-2" class="input" placeholder="Filter ID 2 (optional)">
+                                <input type="text" id="volna-filter-id-3" class="input" placeholder="Filter ID 3 (optional)">
+                                <input type="text" id="volna-filter-id-4" class="input" placeholder="Filter ID 4 (optional)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Volna Auto-Fetch Settings -->
+                    <div class="settings-section">
+                        <h3>Volna Auto-Fetch</h3>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Enable Auto-Fetch</span>
+                                <span class="setting-description">Automatically fetch new jobs from Volna filters periodically</span>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="volna-auto-fetch-toggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Fetch Interval (minutes)</span>
+                                <span class="setting-description">How often to fetch new jobs from Volna</span>
+                            </div>
+                            <input type="number" id="volna-fetch-interval" class="input input-small" value="5" min="1" max="60">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Auto-Add to Queue</span>
+                                <span class="setting-description">Automatically add fetched jobs to the processing queue</span>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="volna-auto-add-toggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-save" onclick="saveSettings()">Save Settings</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Job Details Modal -->
+    <div class="modal hidden" id="job-modal">
+        <div class="modal-overlay" onclick="closeModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Job Details</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Job details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast hidden" id="toast">
+        <span class="toast-message" id="toast-message"></span>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/dashboard-app.js"></script>
+</body>
+</html>

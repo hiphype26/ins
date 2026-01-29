@@ -6,7 +6,10 @@ import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth';
 import upworkRoutes from './routes/upwork';
 import jobRoutes from './routes/jobs';
+import settingsRoutes from './routes/settings';
+import volnaRoutes from './routes/volna';
 import { startScheduler } from './services/scheduler';
+import { startVolnaScheduler } from './services/volnaScheduler';
 
 dotenv.config();
 
@@ -31,6 +34,8 @@ app.set('prisma', prisma);
 app.use('/api/auth', authRoutes);
 app.use('/api/upwork', upworkRoutes);
 app.use('/api/jobs', jobRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/volna', volnaRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -54,6 +59,9 @@ app.listen(PORT, () => {
   // Start the job scheduler
   startScheduler(prisma);
   console.log('Job scheduler started');
+  
+  // Start the Volna auto-fetch scheduler
+  startVolnaScheduler(prisma);
 });
 
 // Graceful shutdown
