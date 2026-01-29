@@ -28,16 +28,13 @@ async function getCachedOrFetch(apiKey: string, filterId: string): Promise<any[]
     return cached.data;
   }
   
-  // Fetch fresh data
+  // Fetch fresh data (no pagination params - Volna returns all by default)
   const response = await axios.get(
     `${VOLNA_API_BASE}/filters/${filterId}/projects`,
     {
       headers: {
         'X-API-TOKEN': apiKey,
         'Content-Type': 'application/json'
-      },
-      params: {
-        limit: 100
       },
       timeout: 60000
     }
@@ -208,26 +205,25 @@ router.get('/test', authenticateToken, async (req: Request, res: Response) => {
       });
     }
     
-    // Test connection with first filter
+    // Test connection with first filter (no pagination params)
     const response = await axios.get(
       `${VOLNA_API_BASE}/filters/${config.filterIds[0]}/projects`,
       {
         headers: {
-          'X-API-TOKEN': config.apiKey
+          'X-API-TOKEN': config.apiKey,
+          'Content-Type': 'application/json'
         },
-        params: {
-          limit: 1
-        },
-        timeout: 10000
+        timeout: 15000
       }
     );
     
     if (response.data.data) {
+      const projectCount = response.data.data.length || 0;
       res.json({ 
         connected: true, 
         message: `Connected to ${config.filterIds.length} filter(s)`,
         filters: config.filterIds,
-        total_projects: response.data.pagination?.total || 0
+        total_projects: projectCount
       });
     } else {
       res.json({
@@ -236,9 +232,10 @@ router.get('/test', authenticateToken, async (req: Request, res: Response) => {
       });
     }
   } catch (error: any) {
+    const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message;
     res.json({ 
       connected: false, 
-      message: error.response?.data?.error || error.message 
+      message: errorMsg
     });
   }
 });

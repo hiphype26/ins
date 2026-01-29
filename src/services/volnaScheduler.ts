@@ -109,9 +109,6 @@ async function fetchFromFilter(apiKey: string, filterId: string): Promise<any[]>
           'X-API-TOKEN': apiKey,
           'Content-Type': 'application/json'
         },
-        params: {
-          limit: 100
-        },
         timeout: 60000
       }
     );
