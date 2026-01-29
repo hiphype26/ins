@@ -1087,3 +1087,46 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* Job Status Tags for Volna Test */
+.job-status-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    font-weight: 500;
+}
+
+.job-status-tag.queued {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.job-status-tag.processing {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.job-status-tag.completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.job-status-tag.failed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.volna-job-item.in-queue {
+    background: #f9f9f9;
+    border-left: 3px solid var(--primary);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}

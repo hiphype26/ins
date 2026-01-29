@@ -447,6 +447,9 @@ let volnaAllProjects = [];
 let volnaCurrentPage = 1;
 const volnaPageSize = 20;
 
+// Track which URLs are already in queue/job data
+let jobUrlsInSystem = {};
+
 async function fetchVolnaJobs(silent = false) {
     const fetchText = document.getElementById('volna-fetch-text');
     const fetchLoading = document.getElementById('volna-fetch-loading');
@@ -459,7 +462,14 @@ async function fetchVolnaJobs(silent = false) {
     }
     
     try {
-        const response = await api('/volna/jobs');
+        // Fetch both Volna jobs and existing job URLs in parallel
+        const [response, urlsResponse] = await Promise.all([
+            api('/volna/jobs'),
+            api('/jobs/urls')
+        ]);
+        
+        // Store URL map for checking
+        jobUrlsInSystem = urlsResponse || {};
         
         // Update timestamp with exact time
         const now = new Date();
@@ -512,11 +522,14 @@ function renderVolnaProjects() {
     // Render projects
     resultsContainer.innerHTML = `
         <div class="volna-job-list">
-            ${pageProjects.map((project, index) => `
-                <div class="volna-job-item">
+            ${pageProjects.map((project, index) => {
+                const isInSystem = jobUrlsInSystem[project.url];
+                const statusLabel = isInSystem ? `(${isInSystem})` : '';
+                return `
+                <div class="volna-job-item ${isInSystem ? 'in-queue' : ''}">
                     <div class="volna-job-number">${startIndex + index + 1}</div>
                     <div class="volna-job-info">
-                        <div class="volna-job-title">${project.title || 'Untitled'}</div>
+                        <div class="volna-job-title">${project.title || 'Untitled'} ${isInSystem ? `<span class="job-status-tag ${isInSystem}">${statusLabel}</span>` : ''}</div>
                         <div class="volna-job-meta">
                             <span>${project.budget_type || ''} ${project.budget_amount || ''}</span>
                             ${project.client_country ? `<span>📍 ${project.client_country}</span>` : ''}
@@ -526,11 +539,21 @@ function renderVolnaProjects() {
                         <a href="${project.url}" target="_blank" class="volna-job-url">${project.url}</a>
                         ${project.published_at ? `<div class="volna-job-time">Posted: ${formatTimestamp(new Date(project.published_at))}</div>` : ''}
                     </div>
-                    <button class="btn btn-primary btn-small" onclick="addVolnaJobToQueue('${project.url}')">
-                        Add to Queue
-                    </button>
+                    ${isInSystem && isInSystem !== 'processing' ? `
+                        <button class="btn btn-danger btn-small" onclick="removeVolnaJobFromQueue('${project.url}')">
+                            Remove
+                        </button>
+                    ` : isInSystem === 'processing' ? `
+                        <button class="btn btn-secondary btn-small" disabled>
+                            Processing...
+                        </button>
+                    ` : `
+                        <button class="btn btn-primary btn-small" onclick="addVolnaJobToQueue('${project.url}')">
+                            Add to Queue
+                        </button>
+                    `}
                 </div>
-            `).join('')}
+            `}).join('')}
         </div>
     `;
     
@@ -635,9 +658,27 @@ async function addVolnaJobToQueue(url) {
             method: 'POST',
             body: JSON.stringify({ jobUrl: url })
         });
+        // Update local state
+        jobUrlsInSystem[url] = 'queued';
+        renderVolnaProjects();
         showToast('Job added to queue', 'success');
     } catch (error) {
         showToast(error.message || 'Failed to add job', 'error');
+    }
+}
+
+async function removeVolnaJobFromQueue(url) {
+    try {
+        await api('/jobs/by-url', {
+            method: 'DELETE',
+            body: JSON.stringify({ jobUrl: url })
+        });
+        // Update local state
+        delete jobUrlsInSystem[url];
+        renderVolnaProjects();
+        showToast('Job removed', 'success');
+    } catch (error) {
+        showToast(error.message || 'Failed to remove job', 'error');
     }
 }
 

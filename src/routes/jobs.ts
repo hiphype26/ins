@@ -194,4 +194,63 @@ router.get('/stats/queue', authMiddleware, async (req: AuthRequest, res: Respons
   }
 });
 
+// Get all job URLs in the system (for checking if already in queue)
+router.get('/urls', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const prisma: PrismaClient = req.app.get('prisma');
+  
+  try {
+    const jobs = await prisma.job.findMany({
+      select: { jobUrl: true, status: true }
+    });
+    
+    // Return as a map of URL -> status for easy lookup
+    const urlMap: { [key: string]: string } = {};
+    jobs.forEach(job => {
+      urlMap[job.jobUrl] = job.status;
+    });
+    
+    res.json(urlMap);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get job URLs' });
+  }
+});
+
+// Remove a job by URL (from queue or job data)
+router.delete('/by-url', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const prisma: PrismaClient = req.app.get('prisma');
+  const { jobUrl } = req.body;
+  
+  if (!jobUrl) {
+    return res.status(400).json({ error: 'Job URL required' });
+  }
+  
+  try {
+    // Find and delete the job
+    const job = await prisma.job.findFirst({
+      where: { jobUrl }
+    });
+    
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found in queue' });
+    }
+    
+    // Don't allow removing jobs that are currently processing
+    if (job.status === 'processing') {
+      return res.status(400).json({ error: 'Cannot remove job that is currently processing' });
+    }
+    
+    await prisma.job.delete({
+      where: { id: job.id }
+    });
+    
+    res.json({ 
+      success: true, 
+      message: `Job removed from ${job.status === 'queued' ? 'queue' : 'job data'}` 
+    });
+  } catch (error) {
+    console.error('Remove job error:', error);
+    res.status(500).json({ error: 'Failed to remove job' });
+  }
+});
+
 export default router;
