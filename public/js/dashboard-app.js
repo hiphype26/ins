@@ -70,18 +70,12 @@ function showPage(pageName) {
         }
     });
     
-    // Clean up Volna auto-refresh when leaving the page
+    // Only stop the countdown display when leaving Volna Test (keep auto-refresh running)
     if (pageName !== 'volna-test') {
-        if (volnaAutoRefreshInterval) {
-            clearInterval(volnaAutoRefreshInterval);
-            volnaAutoRefreshInterval = null;
-        }
         if (volnaCountdownInterval) {
             clearInterval(volnaCountdownInterval);
             volnaCountdownInterval = null;
         }
-        const checkbox = document.getElementById('volna-auto-refresh');
-        if (checkbox) checkbox.checked = false;
     }
     
     // Load page-specific data
@@ -92,6 +86,20 @@ function showPage(pageName) {
     } else if (pageName === 'volna-test') {
         // Auto-fetch on page load
         fetchVolnaJobs();
+        
+        // Restore auto-refresh UI state if it's still running
+        const checkbox = document.getElementById('volna-auto-refresh');
+        const nextRefreshContainer = document.getElementById('volna-next-refresh-container');
+        if (volnaAutoRefreshInterval) {
+            checkbox.checked = true;
+            nextRefreshContainer.style.display = 'inline';
+            // Restart countdown display
+            updateNextRefreshCountdown();
+            volnaCountdownInterval = setInterval(updateNextRefreshCountdown, 1000);
+        } else {
+            checkbox.checked = false;
+            nextRefreshContainer.style.display = 'none';
+        }
     } else if (pageName === 'settings') {
         checkUpworkStatus();
     }
