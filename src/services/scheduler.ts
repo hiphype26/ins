@@ -204,10 +204,10 @@ async function processNextJob(): Promise<void> {
       return;
     }
     
-    // Get next queued job
+    // Get next queued job (newest first - LIFO)
     const job = await prismaInstance.job.findFirst({
       where: { status: 'queued' },
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'desc' }
     });
     
     if (!job) {
