@@ -439,9 +439,9 @@ async function fetchVolnaJobs(silent = false) {
     try {
         const response = await api('/volna/jobs');
         
-        // Update timestamp
+        // Update timestamp with exact time
         const now = new Date();
-        lastFetchEl.textContent = formatTimestamp(now);
+        lastFetchEl.textContent = formatTimestamp(now, true);
         projectCountEl.textContent = response ? response.length : 0;
         
         // Store all projects for pagination
@@ -539,7 +539,12 @@ function volnaChangePage(delta) {
     }
 }
 
-function formatTimestamp(date) {
+function formatTimestamp(date, showExactTime = false) {
+    // Always show exact time for "Last fetched"
+    if (showExactTime) {
+        return date.toLocaleTimeString();
+    }
+    
     const now = new Date();
     const diff = now - date;
     
