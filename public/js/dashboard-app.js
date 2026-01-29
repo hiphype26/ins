@@ -92,6 +92,8 @@ function showPage(pageName) {
     } else if (pageName === 'volna-test') {
         // Auto-fetch on page load
         fetchVolnaJobs();
+    } else if (pageName === 'settings') {
+        checkUpworkStatus();
     }
 }
 
@@ -735,6 +737,58 @@ function showToast(message, type = 'info') {
     setTimeout(() => {
         toast.classList.add('hidden');
     }, 3000);
+}
+
+// Upwork Connection
+async function checkUpworkStatus() {
+    try {
+        const status = await api('/upwork/status');
+        const statusEl = document.getElementById('upwork-connection-status');
+        const connectBtn = document.getElementById('upwork-connect-btn');
+        const disconnectBtn = document.getElementById('upwork-disconnect-btn');
+        
+        if (status.connected) {
+            statusEl.textContent = 'Connected';
+            statusEl.style.color = '#10b981';
+            connectBtn.style.display = 'none';
+            disconnectBtn.style.display = 'inline-block';
+        } else {
+            statusEl.textContent = 'Not connected';
+            statusEl.style.color = '#6b7280';
+            connectBtn.style.display = 'inline-block';
+            disconnectBtn.style.display = 'none';
+        }
+    } catch (error) {
+        document.getElementById('upwork-connection-status').textContent = 'Status unknown';
+    }
+}
+
+async function connectUpwork() {
+    try {
+        // First save settings in case they were just entered
+        await saveSettings();
+        
+        const data = await api('/upwork/login');
+        if (data.authUrl) {
+            window.location.href = data.authUrl;
+        } else if (data.error) {
+            showToast(data.error, 'error');
+        }
+    } catch (error) {
+        showToast(error.message || 'Failed to connect to Upwork', 'error');
+    }
+}
+
+async function disconnectUpwork() {
+    if (!confirm('Are you sure you want to disconnect from Upwork?')) return;
+    
+    try {
+        await api('/upwork/disconnect', { method: 'POST' });
+        showToast('Disconnected from Upwork', 'success');
+        checkUpworkStatus();
+    } catch (error) {
+        showToast('Failed to disconnect', 'error');
+    }
 }
 
 // Auto-refresh dashboard every 30 seconds

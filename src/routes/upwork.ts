@@ -5,17 +5,37 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-const getUpworkConfig = () => ({
-  CLIENT_ID: process.env.UPWORK_CLIENT_ID || '',
-  CLIENT_SECRET: process.env.UPWORK_CLIENT_SECRET || '',
-  REDIRECT_URI: process.env.UPWORK_REDIRECT_URI || '',
-  AUTH_URL: 'https://www.upwork.com/ab/account-security/oauth2/authorize',
-  TOKEN_URL: 'https://www.upwork.com/api/v3/oauth2/token'
-});
+// Get Upwork config from database settings
+async function getUpworkConfig(prisma: PrismaClient) {
+  const settings = await prisma.settings.findMany({
+    where: {
+      key: {
+        in: ['upwork_client_id', 'upwork_client_secret', 'upwork_redirect_uri']
+      }
+    }
+  });
+  
+  const settingsMap: Record<string, string> = {};
+  settings.forEach(s => { settingsMap[s.key] = s.value; });
+  
+  return {
+    CLIENT_ID: settingsMap['upwork_client_id'] || '',
+    CLIENT_SECRET: settingsMap['upwork_client_secret'] || '',
+    REDIRECT_URI: settingsMap['upwork_redirect_uri'] || '',
+    AUTH_URL: 'https://www.upwork.com/ab/account-security/oauth2/authorize',
+    TOKEN_URL: 'https://www.upwork.com/api/v3/oauth2/token'
+  };
+}
 
 // Get OAuth URL
-router.get('/login', authMiddleware, (req: AuthRequest, res: Response) => {
-  const config = getUpworkConfig();
+router.get('/login', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const prisma: PrismaClient = req.app.get('prisma');
+  const config = await getUpworkConfig(prisma);
+  
+  if (!config.CLIENT_ID || !config.CLIENT_SECRET || !config.REDIRECT_URI) {
+    return res.status(400).json({ error: 'Upwork API credentials not configured. Please set them in Settings.' });
+  }
+  
   const state = req.userId; // Use userId as state for callback
   const authUrl = `${config.AUTH_URL}?response_type=code&client_id=${config.CLIENT_ID}&redirect_uri=${encodeURIComponent(config.REDIRECT_URI)}&state=${state}`;
   res.json({ authUrl });
@@ -24,7 +44,7 @@ router.get('/login', authMiddleware, (req: AuthRequest, res: Response) => {
 // OAuth callback
 router.get('/callback', async (req: Request, res: Response) => {
   const prisma: PrismaClient = req.app.get('prisma');
-  const config = getUpworkConfig();
+  const config = await getUpworkConfig(prisma);
   const { code, state, error } = req.query;
   
   const frontendUrl = process.env.FRONTEND_URL || '';
@@ -118,7 +138,7 @@ router.post('/disconnect', authMiddleware, async (req: AuthRequest, res: Respons
 
 // Refresh token (internal use)
 export async function refreshUpworkToken(prisma: PrismaClient, userId: string): Promise<string | null> {
-  const config = getUpworkConfig();
+  const config = await getUpworkConfig(prisma);
   
   try {
     const token = await prisma.upworkToken.findUnique({

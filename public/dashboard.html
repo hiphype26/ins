@@ -283,6 +283,14 @@
                             <label class="setting-label">Upwork Redirect URI</label>
                             <input type="text" id="upwork-redirect-uri" class="input" placeholder="https://your-app.com/api/upwork/callback">
                         </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Upwork Connection</span>
+                                <span class="setting-description" id="upwork-connection-status">Checking status...</span>
+                            </div>
+                            <button id="upwork-connect-btn" class="btn btn-primary" onclick="connectUpwork()">Connect to Upwork</button>
+                            <button id="upwork-disconnect-btn" class="btn btn-danger" onclick="disconnectUpwork()" style="display: none;">Disconnect</button>
+                        </div>
                         <div class="setting-item vertical">
                             <label class="setting-label">Volna API Token</label>
                             <input type="password" id="volna-api-key" class="input" placeholder="Your Volna API Token">
