@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upwork Job Fetcher - Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav class="navbar" id="navbar"></nav>
+    
+    <div class="container" id="app">
+        <h1 class="page-title">Dashboard</h1>
+        
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">Upwork Status</div>
+                <div class="stat-value" id="upwork-status">Loading...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Queued Jobs</div>
+                <div class="stat-value" id="stat-queued">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Processing</div>
+                <div class="stat-value" id="stat-processing">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Completed</div>
+                <div class="stat-value stat-success" id="stat-completed">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Failed</div>
+                <div class="stat-value stat-error" id="stat-failed">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Rate Limit (this hour)</div>
+                <div class="stat-value" id="stat-rate-limit">- / 50</div>
+            </div>
+        </div>
+        
+        <div class="actions" id="actions">
+            <a href="upwork.html" class="btn btn-primary" id="connect-btn" style="display: none;">Connect Upwork</a>
+            <a href="jobs.html" class="btn btn-primary">View Jobs</a>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!checkAuth()) return;
+            renderNavbar();
+            await loadDashboard();
+        });
+
+        async function loadDashboard() {
+            try {
+                // Load stats
+                const statsRes = await api('/jobs/stats/queue');
+                document.getElementById('stat-queued').textContent = statsRes.queued || 0;
+                document.getElementById('stat-processing').textContent = statsRes.processing || 0;
+                document.getElementById('stat-completed').textContent = statsRes.completed || 0;
+                document.getElementById('stat-failed').textContent = statsRes.failed || 0;
+                document.getElementById('stat-rate-limit').textContent = 
+                    `${statsRes.rateLimitUsed || 0} / ${statsRes.rateLimitMax || 50}`;
+
+                // Load Upwork status
+                const upworkRes = await api('/upwork/status');
+                const statusEl = document.getElementById('upwork-status');
+                const connectBtn = document.getElementById('connect-btn');
+                
+                if (upworkRes.connected) {
+                    statusEl.textContent = 'Connected';
+                    statusEl.classList.add('stat-success');
+                    connectBtn.style.display = 'none';
+                } else {
+                    statusEl.textContent = 'Not Connected';
+                    statusEl.classList.add('stat-error');
+                    connectBtn.style.display = 'inline-block';
+                }
+            } catch (error) {
+                console.error('Failed to load dashboard:', error);
+            }
+        }
+
+        // Refresh every 30 seconds
+        setInterval(loadDashboard, 30000);
+    </script>
+</body>
+</html>

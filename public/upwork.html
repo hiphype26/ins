@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upwork Connection - Upwork Job Fetcher</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav class="navbar" id="navbar"></nav>
+    
+    <div class="container" style="max-width: 600px;">
+        <h1 class="page-title">Upwork Connection</h1>
+        
+        <div class="card" style="text-align: center;">
+            <div class="message message-success" id="success-message" style="display: none;"></div>
+            <div class="message message-error" id="error-message" style="display: none;"></div>
+            
+            <div class="status-section">
+                <p style="font-size: 18px; margin-bottom: 8px;">Status:</p>
+                <p id="connection-status" style="font-size: 24px; font-weight: bold;">Loading...</p>
+                <p id="expires-at" style="font-size: 14px; color: #666; margin-top: 8px;"></p>
+            </div>
+            
+            <div style="margin-top: 24px;">
+                <button id="connect-btn" class="btn btn-primary" style="display: none;">Connect to Upwork</button>
+                <button id="disconnect-btn" class="btn btn-danger" style="display: none;">Disconnect</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!checkAuth()) return;
+            renderNavbar();
+            
+            // Check URL params for callback results
+            const params = new URLSearchParams(window.location.search);
+            const success = params.get('success');
+            const error = params.get('error');
+            
+            if (success) {
+                showMessage('success', 'Successfully connected to Upwork!');
+                // Clean URL
+                window.history.replaceState({}, '', '/upwork.html');
+            } else if (error) {
+                showMessage('error', `Connection failed: ${error}`);
+                window.history.replaceState({}, '', '/upwork.html');
+            }
+            
+            await loadStatus();
+        });
+
+        function showMessage(type, text) {
+            const el = document.getElementById(`${type}-message`);
+            el.textContent = text;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 5000);
+        }
+
+        async function loadStatus() {
+            try {
+                const data = await api('/upwork/status');
+                const statusEl = document.getElementById('connection-status');
+                const expiresEl = document.getElementById('expires-at');
+                const connectBtn = document.getElementById('connect-btn');
+                const disconnectBtn = document.getElementById('disconnect-btn');
+                
+                if (data.connected) {
+                    statusEl.textContent = 'Connected';
+                    statusEl.style.color = '#14a800';
+                    expiresEl.textContent = `Token expires: ${new Date(data.expiresAt).toLocaleString()}`;
+                    connectBtn.style.display = 'none';
+                    disconnectBtn.style.display = 'inline-block';
+                } else {
+                    statusEl.textContent = 'Not Connected';
+                    statusEl.style.color = '#e74c3c';
+                    expiresEl.textContent = '';
+                    connectBtn.style.display = 'inline-block';
+                    disconnectBtn.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Failed to load status:', error);
+            }
+        }
+
+        document.getElementById('connect-btn').addEventListener('click', async () => {
+            try {
+                const data = await api('/upwork/login');
+                window.location.href = data.authUrl;
+            } catch (error) {
+                showMessage('error', 'Failed to start OAuth flow');
+            }
+        });
+
+        document.getElementById('disconnect-btn').addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to disconnect from Upwork?')) return;
+            
+            try {
+                await api('/upwork/disconnect', { method: 'POST' });
+                showMessage('success', 'Disconnected from Upwork');
+                await loadStatus();
+            } catch (error) {
+                showMessage('error', 'Failed to disconnect');
+            }
+        });
+    </script>
+</body>
+</html>

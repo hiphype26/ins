@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jobs - Upwork Job Fetcher</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav class="navbar" id="navbar"></nav>
+    
+    <div class="container" style="max-width: 1400px;">
+        <h1 class="page-title">Jobs</h1>
+        
+        <div class="message message-success" id="success-message" style="display: none;"></div>
+        <div class="message message-error" id="error-message" style="display: none;"></div>
+        
+        <form id="job-form" class="job-form">
+            <input type="text" id="job-url" class="input" 
+                   placeholder="Paste Upwork job URL (e.g., https://www.upwork.com/jobs/~01234567890)" 
+                   required>
+            <button type="submit" class="btn btn-primary" id="submit-btn">Add Job</button>
+        </form>
+        
+        <div class="table-container">
+            <table class="table" id="jobs-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Job URL</th>
+                        <th>Status</th>
+                        <th>Title</th>
+                        <th>Client</th>
+                        <th>Budget</th>
+                        <th>Submitted</th>
+                    </tr>
+                </thead>
+                <tbody id="jobs-tbody">
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #666;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Job Details Modal -->
+    <div id="job-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <h2 id="modal-title">Job Details</h2>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        let jobs = [];
+        let expandedJobId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!checkAuth()) return;
+            renderNavbar();
+            await loadJobs();
+            
+            // Poll for updates
+            setInterval(loadJobs, 10000);
+        });
+
+        function showMessage(type, text) {
+            const el = document.getElementById(`${type}-message`);
+            el.textContent = text;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 5000);
+        }
+
+        async function loadJobs() {
+            try {
+                const data = await api('/jobs');
+                jobs = data.jobs || [];
+                renderJobs();
+            } catch (error) {
+                console.error('Failed to load jobs:', error);
+            }
+        }
+
+        function renderJobs() {
+            const tbody = document.getElementById('jobs-tbody');
+            
+            if (jobs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #666;">
+                            No jobs yet. Submit a job URL above to get started.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = jobs.map(job => {
+                const result = job.result || {};
+                const statusClass = getStatusClass(job.status);
+                const truncatedUrl = job.jobUrl.length > 50 
+                    ? job.jobUrl.slice(0, 50) + '...' 
+                    : job.jobUrl;
+                
+                let row = `
+                    <tr>
+                        <td>
+                            ${job.result ? `<button class="expand-btn" onclick="toggleDetails('${job.id}')">${expandedJobId === job.id ? '▼' : '▶'}</button>` : ''}
+                        </td>
+                        <td><a href="${job.jobUrl}" target="_blank">${truncatedUrl}</a></td>
+                        <td><span class="status ${statusClass}">${job.status}</span></td>
+                        <td>${result.title || '-'}</td>
+                        <td>${result.client_name || '-'}</td>
+                        <td>${result.budget || '-'}</td>
+                        <td>${new Date(job.createdAt).toLocaleString()}</td>
+                    </tr>
+                `;
+                
+                if (expandedJobId === job.id && job.result) {
+                    row += `
+                        <tr class="details-row">
+                            <td colspan="7">
+                                <div class="job-details">
+                                    <div class="detail-row">
+                                        <span class="detail-label">Description:</span>
+                                        <span class="detail-value">${(result.description || 'N/A').slice(0, 500)}${(result.description || '').length > 500 ? '...' : ''}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Skills:</span>
+                                        <span class="detail-value">${result.skills || 'N/A'}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Posted:</span>
+                                        <span class="detail-value">${result.posted_date || 'N/A'}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Proposals:</span>
+                                        <span class="detail-value">${result.proposals_count || 0}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Client Location:</span>
+                                        <span class="detail-value">${[result.client_city, result.client_country].filter(Boolean).join(', ') || 'N/A'}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Client Spend:</span>
+                                        <span class="detail-value">${result.client_spend || '$0'}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Client Hires:</span>
+                                        <span class="detail-value">${result.client_hires || 0}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Client Reviews:</span>
+                                        <span class="detail-value">${result.client_reviews || 0}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Client Rating:</span>
+                                        <span class="detail-value">${result.client_rating || 0}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Payment Verified:</span>
+                                        <span class="detail-value">${result.client_verified ? 'Yes' : 'No'}</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                return row;
+            }).join('');
+        }
+
+        function getStatusClass(status) {
+            switch (status) {
+                case 'queued': return 'status-queued';
+                case 'processing': return 'status-processing';
+                case 'completed': return 'status-completed';
+                case 'failed': return 'status-failed';
+                default: return '';
+            }
+        }
+
+        function toggleDetails(jobId) {
+            expandedJobId = expandedJobId === jobId ? null : jobId;
+            renderJobs();
+        }
+
+        document.getElementById('job-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const urlInput = document.getElementById('job-url');
+            const submitBtn = document.getElementById('submit-btn');
+            const jobUrl = urlInput.value.trim();
+            
+            if (!jobUrl) return;
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            
+            try {
+                const data = await api('/jobs', {
+                    method: 'POST',
+                    body: JSON.stringify({ jobUrl })
+                });
+                
+                showMessage('success', `Job submitted! Queue position: ${data.job.queuePosition}`);
+                urlInput.value = '';
+                await loadJobs();
+            } catch (error) {
+                showMessage('error', error.message || 'Failed to submit job');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Add Job';
+            }
+        });
+    </script>
+</body>
+</html>
