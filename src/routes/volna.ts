@@ -288,8 +288,10 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
         let last24Hours = 0;
         
         for (const project of projects) {
-          if (project.publishedAt) {
-            const publishedDate = new Date(project.publishedAt);
+          // Volna API uses snake_case: published_at
+          const publishedAtStr = project.published_at || project.publishedAt;
+          if (publishedAtStr) {
+            const publishedDate = new Date(publishedAtStr);
             if (publishedDate >= oneHourAgo) {
               lastHour++;
             }
