@@ -939,6 +939,34 @@ async function disconnectUpwork() {
     }
 }
 
+// Test Volna Connection
+async function testVolnaConnection() {
+    const statusEl = document.getElementById('volna-connection-status');
+    statusEl.textContent = 'Testing...';
+    statusEl.style.color = 'var(--gray-600)';
+    
+    try {
+        // First save settings to make sure we test with current values
+        await saveSettings();
+        
+        const result = await api('/volna/test');
+        
+        if (result.connected) {
+            statusEl.textContent = `✓ Connected! ${result.total_projects} projects found in filter(s): ${result.filters.join(', ')}`;
+            statusEl.style.color = '#10b981';
+            showToast('Volna connection successful!', 'success');
+        } else {
+            statusEl.textContent = `✗ ${result.message}`;
+            statusEl.style.color = '#ef4444';
+            showToast(result.message, 'error');
+        }
+    } catch (error) {
+        statusEl.textContent = `✗ Error: ${error.message}`;
+        statusEl.style.color = '#ef4444';
+        showToast('Failed to test Volna connection', 'error');
+    }
+}
+
 // Auto-refresh dashboard every 30 seconds
 setInterval(() => {
     const activePage = document.querySelector('.page:not(.hidden)');
