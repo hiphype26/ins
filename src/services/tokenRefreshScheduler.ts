@@ -3,14 +3,14 @@ import { refreshUpworkToken } from '../routes/upwork';
 
 let refreshInterval: NodeJS.Timeout | null = null;
 
-// Refresh tokens every 30 minutes to keep them alive
-const REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+// Refresh tokens every 5 minutes to keep them alive
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
-// Refresh tokens that will expire in the next 2 hours
-const EXPIRY_BUFFER_MS = 2 * 60 * 60 * 1000; // 2 hours
+// Refresh tokens that will expire in the next 30 minutes
+const EXPIRY_BUFFER_MS = 30 * 60 * 1000; // 30 minutes
 
 export function startTokenRefreshScheduler(prisma: PrismaClient) {
-  console.log('Token refresh scheduler started - will keep Upwork tokens alive');
+  console.log('Token refresh scheduler started - checking every 5 minutes');
   
   // Run immediately on startup
   refreshExpiringTokens(prisma);
