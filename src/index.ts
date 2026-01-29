@@ -53,9 +53,28 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
+// Recovery: Reset stuck "processing" jobs on startup
+async function recoverStuckJobs() {
+  try {
+    const stuckJobs = await prisma.job.updateMany({
+      where: { status: 'processing' },
+      data: { status: 'queued' }
+    });
+    
+    if (stuckJobs.count > 0) {
+      console.log(`Recovered ${stuckJobs.count} stuck jobs (reset to queued)`);
+    }
+  } catch (error) {
+    console.error('Failed to recover stuck jobs:', error);
+  }
+}
+
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  
+  // Recover any stuck jobs from previous run
+  await recoverStuckJobs();
   
   // Start the job scheduler
   startScheduler(prisma);

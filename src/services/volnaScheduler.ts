@@ -83,6 +83,13 @@ function isWithinWorkingHours(config: any): boolean {
   const startMinutes = startHour * 60 + startMin;
   const endMinutes = endHour * 60 + endMin;
   
+  // Handle overnight hours (e.g., 22:00 - 06:00)
+  if (startMinutes > endMinutes) {
+    // Overnight: valid if time >= start OR time < end
+    return currentTime >= startMinutes || currentTime < endMinutes;
+  }
+  
+  // Normal hours: valid if time >= start AND time < end
   return currentTime >= startMinutes && currentTime < endMinutes;
 }
 
