@@ -2,8 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import { fetchJobDetails } from './upworkClient';
 
 // Default values (can be overridden by settings)
-let MIN_INTERVAL = 72000;   // 72 seconds (50 per hour = 72 sec each)
-let MAX_INTERVAL = 120000;  // 120 seconds (random spread)
+let MIN_INTERVAL = 90000;   // 90 seconds minimum
+let MAX_INTERVAL = 180000;  // 180 seconds (3 min) - wider spread for randomness
 let MAX_PER_HOUR = 50;
 
 let isRunning = false;
@@ -68,9 +68,18 @@ async function isMaintenanceMode(): Promise<boolean> {
   }
 }
 
-// Get random interval between min and max
+// Get random interval between min and max with occasional longer pauses
 function getRandomInterval(): number {
-  return Math.floor(Math.random() * (MAX_INTERVAL - MIN_INTERVAL)) + MIN_INTERVAL;
+  const baseInterval = Math.floor(Math.random() * (MAX_INTERVAL - MIN_INTERVAL)) + MIN_INTERVAL;
+  
+  // 15% chance of taking an extra long pause (2x-3x the base interval)
+  // This makes the pattern more random and human-like
+  if (Math.random() < 0.15) {
+    const multiplier = 2 + Math.random(); // 2x to 3x
+    return Math.floor(baseInterval * multiplier);
+  }
+  
+  return baseInterval;
 }
 
 // Get current hour key
