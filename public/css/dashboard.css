@@ -718,6 +718,12 @@ body {
     color: var(--gray-600);
 }
 
+.filter-stat-label .time-range {
+    font-size: 11px;
+    color: var(--gray-400);
+    font-weight: normal;
+}
+
 .filter-stat-value {
     font-size: 14px;
     font-weight: 600;

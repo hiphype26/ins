@@ -321,7 +321,16 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
     });
     
     const filterStats = await Promise.all(statsPromises);
-    res.json({ filters: filterStats });
+    
+    // Include time ranges in response
+    res.json({ 
+      filters: filterStats,
+      timeRanges: {
+        now: now.toISOString(),
+        oneHourAgo: oneHourAgo.toISOString(),
+        twentyFourHoursAgo: twentyFourHoursAgo.toISOString()
+      }
+    });
   } catch (error: any) {
     console.error('Volna stats error:', error.message);
     res.status(500).json({ error: 'Failed to get stats' });

@@ -172,6 +172,28 @@ async function loadVolnaFilterStats() {
             return;
         }
         
+        // Format time ranges for display
+        const timeRanges = response.timeRanges || {};
+        const formatTimeRange = (start, end) => {
+            const startTime = new Date(start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const endTime = new Date(end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return `${startTime} - ${endTime}`;
+        };
+        const formatDateRange = (start, end) => {
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            const startStr = startDate.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const endStr = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return `${startStr} - ${endStr}`;
+        };
+        
+        const oneHourRange = timeRanges.oneHourAgo && timeRanges.now 
+            ? formatTimeRange(timeRanges.oneHourAgo, timeRanges.now) 
+            : '';
+        const twentyFourHourRange = timeRanges.twentyFourHoursAgo && timeRanges.now 
+            ? formatDateRange(timeRanges.twentyFourHoursAgo, timeRanges.now) 
+            : '';
+        
         container.innerHTML = response.filters.map(filter => `
             <div class="filter-stat-card">
                 <div class="filter-stat-header">
@@ -182,11 +204,11 @@ async function loadVolnaFilterStats() {
                     <p style="color: var(--danger); font-size: 13px;">${filter.error}</p>
                 ` : `
                     <div class="filter-stat-row">
-                        <span class="filter-stat-label">Jobs in last 1 hour</span>
+                        <span class="filter-stat-label">Jobs in last 1 hour <span class="time-range">(${oneHourRange})</span></span>
                         <span class="filter-stat-value highlight">${filter.lastHour}</span>
                     </div>
                     <div class="filter-stat-row">
-                        <span class="filter-stat-label">Jobs in last 24 hours</span>
+                        <span class="filter-stat-label">Jobs in last 24 hours <span class="time-range">(${twentyFourHourRange})</span></span>
                         <span class="filter-stat-value highlight">${filter.last24Hours}</span>
                     </div>
                     <div class="filter-stat-row">
