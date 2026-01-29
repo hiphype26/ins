@@ -231,9 +231,13 @@ async function loadVolnaFilterStats() {
 }
 
 // Job Data
+let allJobsData = []; // Store jobs for modal access
+
 async function loadJobData() {
     try {
         const jobs = await api('/jobs');
+        allJobsData = jobs || []; // Store for later access
+        
         const tbody = document.getElementById('job-data-body');
         const emptyState = document.getElementById('job-data-empty');
         const tableContainer = document.querySelector('#page-job-data .table-container');
@@ -247,18 +251,18 @@ async function loadJobData() {
         tableContainer.style.display = 'block';
         emptyState.style.display = 'none';
         
-        tbody.innerHTML = jobs.map(job => {
+        tbody.innerHTML = jobs.map((job, index) => {
             const result = job.result || {};
             return `
                 <tr>
                     <td><a href="${job.jobUrl}" target="_blank" class="job-url">${job.jobUrl}</a></td>
-                    <td>${result.title || '-'}</td>
-                    <td>${result.client_city || '-'}</td>
-                    <td>${result.client_country || '-'}</td>
+                    <td>${escapeHtml(result.title) || '-'}</td>
+                    <td>${escapeHtml(result.client_city) || '-'}</td>
+                    <td>${escapeHtml(result.client_country) || '-'}</td>
                     <td>${result.client_rating || '-'}</td>
                     <td><span class="status-badge status-${job.status}">${job.status}</span></td>
                     <td>
-                        <button class="btn btn-secondary btn-small" onclick='showJobModal(${JSON.stringify(job).replace(/'/g, "\\'")})'>
+                        <button class="btn btn-secondary btn-small" onclick="showJobModalByIndex(${index})">
                             View
                         </button>
                     </td>
@@ -268,6 +272,24 @@ async function loadJobData() {
     } catch (error) {
         console.error('Failed to load job data:', error);
         showToast('Failed to load job data', 'error');
+    }
+}
+
+// Helper to escape HTML to prevent XSS and broken rendering
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/&/g, '&amp;')
+               .replace(/</g, '&lt;')
+               .replace(/>/g, '&gt;')
+               .replace(/"/g, '&quot;')
+               .replace(/'/g, '&#039;');
+}
+
+// Show modal by job index
+function showJobModalByIndex(index) {
+    const job = allJobsData[index];
+    if (job) {
+        showJobModal(job);
     }
 }
 
