@@ -137,27 +137,7 @@ router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Get single job
-router.get('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const prisma: PrismaClient = req.app.get('prisma');
-  const { id } = req.params;
-  
-  try {
-    const job = await prisma.job.findFirst({
-      where: { id, userId: req.userId }
-    });
-    
-    if (!job) {
-      return res.status(404).json({ error: 'Job not found' });
-    }
-    
-    res.json({ job });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to get job' });
-  }
-});
-
-// Get queue stats
+// Get queue stats - MUST be before /:id
 router.get('/stats/queue', authMiddleware, async (req: AuthRequest, res: Response) => {
   const prisma: PrismaClient = req.app.get('prisma');
   
@@ -194,7 +174,7 @@ router.get('/stats/queue', authMiddleware, async (req: AuthRequest, res: Respons
   }
 });
 
-// Get all job URLs in the system (for checking if already in queue)
+// Get all job URLs in the system - MUST be before /:id
 router.get('/urls', authMiddleware, async (req: AuthRequest, res: Response) => {
   const prisma: PrismaClient = req.app.get('prisma');
   
@@ -215,7 +195,7 @@ router.get('/urls', authMiddleware, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Remove a job by URL (from queue or job data)
+// Remove a job by URL - MUST be before /:id
 router.delete('/by-url', authMiddleware, async (req: AuthRequest, res: Response) => {
   const prisma: PrismaClient = req.app.get('prisma');
   const { jobUrl } = req.body;
@@ -250,6 +230,26 @@ router.delete('/by-url', authMiddleware, async (req: AuthRequest, res: Response)
   } catch (error) {
     console.error('Remove job error:', error);
     res.status(500).json({ error: 'Failed to remove job' });
+  }
+});
+
+// Get single job - MUST be LAST (wildcard route)
+router.get('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const prisma: PrismaClient = req.app.get('prisma');
+  const { id } = req.params;
+  
+  try {
+    const job = await prisma.job.findFirst({
+      where: { id, userId: req.userId }
+    });
+    
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+    
+    res.json({ job });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get job' });
   }
 });
 
