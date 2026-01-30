@@ -342,4 +342,43 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
   }
 });
 
+// Debug endpoint - show raw dates from Volna
+router.get('/debug-dates', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const config = await getVolnaConfig(req.app.get('prisma'));
+    
+    if (!config.apiKey || config.filterIds.length === 0) {
+      return res.json({ error: 'No Volna config' });
+    }
+    
+    const now = new Date();
+    const results: any[] = [];
+    
+    for (const filterId of config.filterIds) {
+      const projects = await getCachedOrFetch(config.apiKey, filterId);
+      
+      const dates = projects.map((p: any) => ({
+        title: p.title?.substring(0, 50),
+        published_at: p.published_at,
+        url: p.url
+      })).sort((a: any, b: any) => {
+        const dateA = new Date(a.published_at || 0);
+        const dateB = new Date(b.published_at || 0);
+        return dateB.getTime() - dateA.getTime(); // Newest first
+      });
+      
+      results.push({
+        filterId,
+        total: projects.length,
+        serverTime: now.toISOString(),
+        jobs: dates
+      });
+    }
+    
+    res.json(results);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
