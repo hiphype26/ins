@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import axios from 'axios';
+import { logApiCall } from './apiLogger';
 
 const VOLNA_API_BASE = 'https://api.vollna.com/v1';
 
@@ -113,6 +114,9 @@ async function fetchFromFilter(apiKey: string, filterId: string): Promise<any[]>
       }
     );
     
+    // Log successful Volna API call
+    await logApiCall('volna', true, `filters/${filterId}/projects`);
+    
     const data = response.data.data || [];
     
     // Cache the result
@@ -121,6 +125,8 @@ async function fetchFromFilter(apiKey: string, filterId: string): Promise<any[]>
     return data;
   } catch (error: any) {
     console.error(`Volna: Failed to fetch from filter ${filterId}:`, error.message);
+    // Log failed Volna API call
+    await logApiCall('volna', false, `filters/${filterId}/projects`, error.message);
     return [];
   }
 }

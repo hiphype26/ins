@@ -8,9 +8,11 @@ import upworkRoutes from './routes/upwork';
 import jobRoutes from './routes/jobs';
 import settingsRoutes from './routes/settings';
 import volnaRoutes from './routes/volna';
+import statsRoutes from './routes/stats';
 import { startScheduler } from './services/scheduler';
 import { startVolnaScheduler } from './services/volnaScheduler';
 import { startTokenRefreshScheduler } from './services/tokenRefreshScheduler';
+import { initApiLogger } from './services/apiLogger';
 
 dotenv.config();
 
@@ -31,12 +33,16 @@ app.use(express.static(path.join(__dirname, '../public')));
 // Make prisma available to routes
 app.set('prisma', prisma);
 
+// Initialize API logger
+initApiLogger(prisma);
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/upwork', upworkRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/volna', volnaRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logApiCall } from './apiLogger';
 
 const LEADHACK_API_URL = 'https://app.leadhack.info:3000/api/admin/addDataV4';
 const LEADHACK_BEARER_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3Njk2OTg0OTEsImV4cCI6MTc2OTc4NDg5MX0.8Hr5B6ILCvJ7AJDk6M4cqV_sB5lPUVzzOpwB9fwF7d4';
@@ -56,12 +57,19 @@ export async function sendToLeadHack(
       timeout: 30000
     });
     
+    // Log successful LeadHack API call
+    await logApiCall('leadhack', true, 'addDataV4');
+    
     console.log(`LeadHack: Successfully sent job ${jobUrl}`);
     return { success: true };
     
   } catch (error: any) {
     const errorMsg = error.response?.data?.message || error.message;
     console.error(`LeadHack: Failed to send job ${jobUrl}:`, errorMsg);
+    
+    // Log failed LeadHack API call
+    await logApiCall('leadhack', false, 'addDataV4', errorMsg);
+    
     return { success: false, error: errorMsg };
   }
 }

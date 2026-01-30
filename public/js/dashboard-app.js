@@ -146,6 +146,9 @@ async function loadDashboard() {
         
         // Load Volna filter stats
         await loadVolnaFilterStats();
+        
+        // Load API stats
+        await loadApiStats('today');
     } catch (error) {
         console.error('Failed to load dashboard:', error);
     }
@@ -227,6 +230,107 @@ async function loadVolnaFilterStats() {
                 <p style="color: var(--danger); font-size: 13px;">${error.message}</p>
             </div>
         `;
+    }
+}
+
+// API Stats
+let currentStatsRange = 'today';
+
+async function loadApiStats(range = 'today') {
+    currentStatsRange = range;
+    
+    // Update button states
+    document.querySelectorAll('.stats-range-selector .btn-sm').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const activeBtn = document.getElementById(`stats-btn-${range}`);
+    if (activeBtn) activeBtn.classList.add('active');
+    
+    try {
+        // Load summary stats
+        const summary = await api(`/stats/summary?range=${range}`);
+        
+        document.getElementById('api-total-calls').textContent = summary.total || 0;
+        document.getElementById('api-upwork-calls').textContent = summary.byType?.upwork?.total || 0;
+        document.getElementById('api-volna-calls').textContent = summary.byType?.volna?.total || 0;
+        document.getElementById('api-leadhack-calls').textContent = summary.byType?.leadhack?.total || 0;
+        
+        // Calculate total failures
+        let totalFailed = 0;
+        if (summary.byType) {
+            Object.values(summary.byType).forEach(type => {
+                totalFailed += type.failed || 0;
+            });
+        }
+        document.getElementById('api-failed-calls').textContent = totalFailed;
+        
+        // Load hourly stats for peak hour
+        const hourly = await api(`/stats/hourly?range=${range}`);
+        if (hourly.peakHour !== undefined && hourly.peakCount > 0) {
+            const hour = hourly.peakHour;
+            document.getElementById('api-peak-hour').textContent = 
+                `${hour.toString().padStart(2, '0')}:00 (${hourly.peakCount})`;
+        } else {
+            document.getElementById('api-peak-hour').textContent = '-';
+        }
+        
+        // Load daily chart
+        await loadDailyChart();
+        
+    } catch (error) {
+        console.error('Failed to load API stats:', error);
+    }
+}
+
+async function loadDailyChart() {
+    const chartContainer = document.getElementById('daily-chart');
+    
+    try {
+        const daily = await api('/stats/daily?days=7');
+        const days = daily.daily || {};
+        
+        // Get dates for last 7 days
+        const dates = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            dates.push(d.toISOString().split('T')[0]);
+        }
+        
+        // Find max value for scaling
+        let maxValue = 1;
+        dates.forEach(date => {
+            const dayData = days[date];
+            if (dayData && dayData.total > maxValue) {
+                maxValue = dayData.total;
+            }
+        });
+        
+        // Generate chart bars
+        chartContainer.innerHTML = dates.map(date => {
+            const dayData = days[date] || { total: 0, upwork: 0, volna: 0, leadhack: 0 };
+            const height = maxValue > 0 ? (dayData.total / maxValue) * 120 : 4;
+            const dayName = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+            const dateNum = new Date(date + 'T00:00:00').getDate();
+            
+            return `
+                <div class="chart-bar-container">
+                    <div class="chart-value">${dayData.total}</div>
+                    <div class="chart-bar" style="height: ${Math.max(height, 4)}px;">
+                        <div class="bar-tooltip">
+                            Upwork: ${dayData.upwork || 0}<br>
+                            Volna: ${dayData.volna || 0}<br>
+                            LeadHack: ${dayData.leadhack || 0}
+                        </div>
+                    </div>
+                    <div class="chart-label">${dayName}<br>${dateNum}</div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('Failed to load daily chart:', error);
+        chartContainer.innerHTML = '<p style="color: var(--gray-500);">Failed to load chart</p>';
     }
 }
 

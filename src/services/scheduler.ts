@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { fetchJobDetails } from './upworkClient';
 import { sendToLeadHack } from './leadhackClient';
+import { logApiCall } from './apiLogger';
 
 // Default values (can be overridden by settings)
 let MIN_INTERVAL = 90000;   // 90 seconds minimum
@@ -236,6 +237,9 @@ async function processNextJob(): Promise<void> {
       // Fetch job details from Upwork
       const result = await fetchJobDetails(prismaInstance, job.userId, job.jobUrl);
       
+      // Log successful Upwork API call
+      await logApiCall('upwork', true, 'graphql/job-details');
+      
       // Update job with result
       await prismaInstance.job.update({
         where: { id: job.id },
@@ -258,6 +262,9 @@ async function processNextJob(): Promise<void> {
       });
     } catch (error: any) {
       console.error(`Job ${job.id} failed:`, error.message);
+      
+      // Log failed Upwork API call
+      await logApiCall('upwork', false, 'graphql/job-details', error.message);
       
       await prismaInstance.job.update({
         where: { id: job.id },

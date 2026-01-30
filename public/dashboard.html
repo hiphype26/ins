@@ -109,6 +109,68 @@
                         <div class="filter-stat-header">Loading...</div>
                     </div>
                 </div>
+
+                <!-- API Usage Stats Section -->
+                <div class="section-header">
+                    <h3>API Usage Stats</h3>
+                    <div class="stats-range-selector">
+                        <button class="btn btn-sm" onclick="loadApiStats('today')" id="stats-btn-today">Today</button>
+                        <button class="btn btn-sm" onclick="loadApiStats('week')" id="stats-btn-week">Week</button>
+                        <button class="btn btn-sm" onclick="loadApiStats('month')" id="stats-btn-month">Month</button>
+                    </div>
+                </div>
+                <div class="api-stats-container" id="api-stats-container">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">📡</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="api-total-calls">0</span>
+                                <span class="stat-label">Total API Calls</span>
+                            </div>
+                        </div>
+                        <div class="stat-card upwork">
+                            <div class="stat-icon">💼</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="api-upwork-calls">0</span>
+                                <span class="stat-label">Upwork Calls</span>
+                            </div>
+                        </div>
+                        <div class="stat-card volna">
+                            <div class="stat-icon">🌊</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="api-volna-calls">0</span>
+                                <span class="stat-label">Volna Calls</span>
+                            </div>
+                        </div>
+                        <div class="stat-card leadhack">
+                            <div class="stat-icon">🚀</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="api-leadhack-calls">0</span>
+                                <span class="stat-label">LeadHack Calls</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">⏰</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="api-peak-hour">-</span>
+                                <span class="stat-label">Peak Hour (UTC)</span>
+                            </div>
+                        </div>
+                        <div class="stat-card error">
+                            <div class="stat-icon">⚠️</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="api-failed-calls">0</span>
+                                <span class="stat-label">Failed Calls</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="daily-chart-container">
+                        <h4>Daily API Calls (Last 7 Days)</h4>
+                        <div class="daily-chart" id="daily-chart">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Job Data Page -->
