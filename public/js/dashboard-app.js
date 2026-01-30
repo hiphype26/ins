@@ -154,29 +154,18 @@ async function loadDashboard() {
     }
 }
 
-// Load Volna Filter Stats
+// Load Job Stats from Database
 async function loadVolnaFilterStats() {
     const container = document.getElementById('volna-filter-stats');
     
     try {
         const response = await api('/volna/stats');
         
-        if (!response.filters || response.filters.length === 0) {
-            container.innerHTML = `
-                <div class="filter-stat-card">
-                    <div class="filter-stat-header">
-                        <span class="filter-stat-id">No filters configured</span>
-                    </div>
-                    <p style="color: var(--gray-500); font-size: 13px;">
-                        Go to Settings to add Volna Filter IDs
-                    </p>
-                </div>
-            `;
-            return;
-        }
+        // Use database stats (jobs saved in system)
+        const db = response.database || {};
+        const timeRanges = response.timeRanges || {};
         
         // Format time ranges for display
-        const timeRanges = response.timeRanges || {};
         const formatTimeRange = (start, end) => {
             const startTime = new Date(start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const endTime = new Date(end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -197,30 +186,49 @@ async function loadVolnaFilterStats() {
             ? formatDateRange(timeRanges.twentyFourHoursAgo, timeRanges.now) 
             : '';
         
-        container.innerHTML = response.filters.map(filter => `
+        const byStatus = db.byStatus || {};
+        
+        container.innerHTML = `
             <div class="filter-stat-card">
                 <div class="filter-stat-header">
-                    <span class="filter-stat-id">Filter #${filter.filterId}</span>
-                    <span class="filter-stat-badge ${filter.status === 'error' ? 'error' : ''}">${filter.status}</span>
+                    <span class="filter-stat-id">Jobs Saved in System</span>
+                    <span class="filter-stat-badge">Database</span>
                 </div>
-                ${filter.status === 'error' ? `
-                    <p style="color: var(--danger); font-size: 13px;">${filter.error}</p>
-                ` : `
-                    <div class="filter-stat-row">
-                        <span class="filter-stat-label">Jobs in last 1 hour <span class="time-range">(${oneHourRange})</span></span>
-                        <span class="filter-stat-value highlight">${filter.lastHour}</span>
-                    </div>
-                    <div class="filter-stat-row">
-                        <span class="filter-stat-label">Jobs in last 24 hours <span class="time-range">(${twentyFourHourRange})</span></span>
-                        <span class="filter-stat-value highlight">${filter.last24Hours}</span>
-                    </div>
-                    <div class="filter-stat-row">
-                        <span class="filter-stat-label">Total jobs available</span>
-                        <span class="filter-stat-value">${filter.total}</span>
-                    </div>
-                `}
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Jobs added in last 1 hour <span class="time-range">(${oneHourRange})</span></span>
+                    <span class="filter-stat-value highlight">${db.lastHour || 0}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Jobs added in last 24 hours <span class="time-range">(${twentyFourHourRange})</span></span>
+                    <span class="filter-stat-value highlight">${db.last24Hours || 0}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Total jobs in database</span>
+                    <span class="filter-stat-value">${db.total || 0}</span>
+                </div>
             </div>
-        `).join('');
+            <div class="filter-stat-card">
+                <div class="filter-stat-header">
+                    <span class="filter-stat-id">Jobs by Status</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Queued</span>
+                    <span class="filter-stat-value">${byStatus.queued || 0}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Processing</span>
+                    <span class="filter-stat-value">${byStatus.processing || 0}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Completed</span>
+                    <span class="filter-stat-value highlight">${byStatus.completed || 0}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Failed</span>
+                    <span class="filter-stat-value" style="color: var(--danger);">${byStatus.failed || 0}</span>
+                </div>
+            </div>
+        `;
     } catch (error) {
         container.innerHTML = `
             <div class="filter-stat-card">

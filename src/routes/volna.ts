@@ -268,68 +268,71 @@ router.get('/config', authenticateToken, async (req: Request, res: Response) => 
   }
 });
 
-// Get stats for all filters (jobs in last 1hr and 24hr)
+// Get stats based on jobs saved in the database (not from Volna API)
 router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
   const prisma: PrismaClient = req.app.get('prisma');
   
   try {
     const config = await getVolnaConfig(prisma);
     
-    if (!config.apiKey || config.filterIds.length === 0) {
-      return res.json({ filters: [] });
-    }
-    
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     
-    // Fetch all filters in parallel using cache
-    const statsPromises = config.filterIds.map(async (filterId) => {
-      try {
-        const projects = await getCachedOrFetch(config.apiKey, filterId);
-        
-        // Count jobs by time period
-        let lastHour = 0;
-        let last24Hours = 0;
-        
-        for (const project of projects) {
-          // Volna API uses snake_case: published_at
-          const publishedAtStr = project.published_at || project.publishedAt;
-          if (publishedAtStr) {
-            const publishedDate = new Date(publishedAtStr);
-            if (publishedDate >= oneHourAgo) {
-              lastHour++;
-            }
-            if (publishedDate >= twentyFourHoursAgo) {
-              last24Hours++;
-            }
-          }
+    // Get job counts from database based on createdAt
+    const [totalJobs, lastHourJobs, last24HoursJobs] = await Promise.all([
+      prisma.job.count(),
+      prisma.job.count({
+        where: {
+          createdAt: { gte: oneHourAgo }
         }
-        
-        return {
+      }),
+      prisma.job.count({
+        where: {
+          createdAt: { gte: twentyFourHoursAgo }
+        }
+      })
+    ]);
+    
+    // Get job counts by status
+    const [queuedJobs, processingJobs, completedJobs, failedJobs] = await Promise.all([
+      prisma.job.count({ where: { status: 'queued' } }),
+      prisma.job.count({ where: { status: 'processing' } }),
+      prisma.job.count({ where: { status: 'completed' } }),
+      prisma.job.count({ where: { status: 'failed' } })
+    ]);
+    
+    // Build filter stats - show one entry per configured filter (for UI compatibility)
+    const filterStats = config.filterIds.length > 0 
+      ? config.filterIds.map((filterId, index) => ({
           filterId,
-          total: projects.length,
-          lastHour,
-          last24Hours,
+          // Only show totals on the first filter to avoid confusion
+          total: index === 0 ? totalJobs : 0,
+          lastHour: index === 0 ? lastHourJobs : 0,
+          last24Hours: index === 0 ? last24HoursJobs : 0,
           status: 'active'
-        };
-      } catch (filterError: any) {
-        return {
-          filterId,
-          total: 0,
-          lastHour: 0,
-          last24Hours: 0,
-          status: 'error',
-          error: filterError.message
-        };
-      }
-    });
+        }))
+      : [{
+          filterId: 'all',
+          total: totalJobs,
+          lastHour: lastHourJobs,
+          last24Hours: last24HoursJobs,
+          status: 'active'
+        }];
     
-    const filterStats = await Promise.all(statsPromises);
-    
-    // Include time ranges in response
     res.json({ 
       filters: filterStats,
+      database: {
+        total: totalJobs,
+        lastHour: lastHourJobs,
+        last24Hours: last24HoursJobs,
+        byStatus: {
+          queued: queuedJobs,
+          processing: processingJobs,
+          completed: completedJobs,
+          failed: failedJobs
+        }
+      },
       timeRanges: {
         now: now.toISOString(),
         oneHourAgo: oneHourAgo.toISOString(),
