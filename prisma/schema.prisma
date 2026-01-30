@@ -35,6 +35,7 @@ model Job {
   jobId       String?
   status      String    @default("queued")
   result      Json?
+  volnaData   Json?     // Store Volna metadata (country, rating, etc.) as fallback
   error       String?
   createdAt   DateTime  @default(now())
   processedAt DateTime?

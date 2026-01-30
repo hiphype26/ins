@@ -233,6 +233,13 @@ async function loadVolnaFilterStats() {
 // Job Data
 let allJobsData = []; // Store jobs for modal access
 
+// Helper to get value from result with volnaData fallback
+function getJobValue(job, field) {
+    const result = job.result || {};
+    const volna = job.volnaData || {};
+    return result[field] || volna[field] || null;
+}
+
 async function loadJobData() {
     try {
         const jobs = await api('/jobs');
@@ -252,14 +259,19 @@ async function loadJobData() {
         emptyState.style.display = 'none';
         
         tbody.innerHTML = jobs.map((job, index) => {
-            const result = job.result || {};
+            // Use Upwork result with Volna fallback for country
+            const title = getJobValue(job, 'title');
+            const city = getJobValue(job, 'client_city'); // Only from Upwork
+            const country = getJobValue(job, 'client_country'); // Upwork or Volna fallback
+            const rating = getJobValue(job, 'client_rating');
+            
             return `
                 <tr>
                     <td><a href="${job.jobUrl}" target="_blank" class="job-url">${job.jobUrl}</a></td>
-                    <td>${escapeHtml(result.title) || '-'}</td>
-                    <td>${escapeHtml(result.client_city) || '-'}</td>
-                    <td>${escapeHtml(result.client_country) || '-'}</td>
-                    <td>${result.client_rating || '-'}</td>
+                    <td>${escapeHtml(title) || '-'}</td>
+                    <td>${escapeHtml(city) || '-'}</td>
+                    <td>${escapeHtml(country) || '-'}</td>
+                    <td>${rating || '-'}</td>
                     <td><span class="status-badge status-${job.status}">${job.status}</span></td>
                     <td>
                         <button class="btn btn-secondary btn-small" onclick="showJobModalByIndex(${index})">
@@ -304,6 +316,15 @@ function showJobModal(job) {
     const modalBody = document.getElementById('modal-body');
     const result = job.result || {};
     
+    // Use Upwork result with Volna fallback
+    const title = getJobValue(job, 'title');
+    const country = getJobValue(job, 'client_country');
+    const rating = getJobValue(job, 'client_rating');
+    const reviews = getJobValue(job, 'client_reviews');
+    const totalSpent = getJobValue(job, 'client_spend') || getJobValue(job, 'client_total_spent');
+    const totalHires = getJobValue(job, 'client_hires') || getJobValue(job, 'client_total_hires');
+    const verified = getJobValue(job, 'client_verified');
+    
     modalBody.innerHTML = `
         <div class="modal-detail-grid">
             <div class="modal-detail-item full-width">
@@ -314,7 +335,7 @@ function showJobModal(job) {
             </div>
             <div class="modal-detail-item full-width">
                 <div class="modal-detail-label">Title</div>
-                <div class="modal-detail-value">${result.title || '-'}</div>
+                <div class="modal-detail-value">${title || '-'}</div>
             </div>
             <div class="modal-detail-item full-width">
                 <div class="modal-detail-label">Description</div>
@@ -346,27 +367,27 @@ function showJobModal(job) {
             </div>
             <div class="modal-detail-item">
                 <div class="modal-detail-label">Client Country</div>
-                <div class="modal-detail-value">${result.client_country || '-'}</div>
+                <div class="modal-detail-value">${country || '-'}</div>
             </div>
             <div class="modal-detail-item">
                 <div class="modal-detail-label">Client Total Spent</div>
-                <div class="modal-detail-value">${result.client_spend || '-'}</div>
+                <div class="modal-detail-value">${totalSpent || '-'}</div>
             </div>
             <div class="modal-detail-item">
                 <div class="modal-detail-label">Client Hires</div>
-                <div class="modal-detail-value">${result.client_hires || '-'}</div>
+                <div class="modal-detail-value">${totalHires || '-'}</div>
             </div>
             <div class="modal-detail-item">
                 <div class="modal-detail-label">Client Reviews</div>
-                <div class="modal-detail-value">${result.client_reviews || '-'}</div>
+                <div class="modal-detail-value">${reviews || '-'}</div>
             </div>
             <div class="modal-detail-item">
                 <div class="modal-detail-label">Client Rating</div>
-                <div class="modal-detail-value">${result.client_rating || '-'}</div>
+                <div class="modal-detail-value">${rating || '-'}</div>
             </div>
             <div class="modal-detail-item">
                 <div class="modal-detail-label">Payment Verified</div>
-                <div class="modal-detail-value">${result.client_verified ? 'Yes' : 'No'}</div>
+                <div class="modal-detail-value">${verified ? 'Yes' : 'No'}</div>
             </div>
             <div class="modal-detail-item">
                 <div class="modal-detail-label">Status</div>

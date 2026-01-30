@@ -126,7 +126,7 @@ async function fetchFromFilter(apiKey: string, filterId: string): Promise<any[]>
 }
 
 // Add a job URL to the queue (if not already exists)
-async function addJobToQueue(userId: string, jobUrl: string): Promise<boolean> {
+async function addJobToQueue(userId: string, jobUrl: string, volnaData?: any): Promise<boolean> {
   try {
     // Check if job already exists
     const existing = await prismaInstance.job.findFirst({
@@ -141,13 +141,14 @@ async function addJobToQueue(userId: string, jobUrl: string): Promise<boolean> {
     const jobIdMatch = jobUrl.match(/~([a-zA-Z0-9]+)/);
     const jobId = jobIdMatch ? `~${jobIdMatch[1]}` : null;
     
-    // Create job record
+    // Create job record with Volna metadata for fallback
     await prismaInstance.job.create({
       data: {
         userId,
         jobUrl,
         jobId,
-        status: 'queued'
+        status: 'queued',
+        volnaData: volnaData || null
       }
     });
     
@@ -213,7 +214,20 @@ async function runFetchCycle(): Promise<void> {
         
         for (const project of allProjects) {
           if (project.url) {
-            const added = await addJobToQueue(userId, project.url);
+            // Extract Volna metadata to store as fallback
+            const volnaData = {
+              title: project.title,
+              client_country: project.clientDetails?.country,
+              client_rating: project.clientDetails?.rating,
+              client_reviews: project.clientDetails?.reviews,
+              client_total_spent: project.clientDetails?.totalSpent,
+              client_total_hires: project.clientDetails?.totalHires,
+              client_verified: project.clientDetails?.paymentMethodVerified,
+              budget_type: project.budget?.type,
+              budget_amount: project.budget?.amount
+            };
+            
+            const added = await addJobToQueue(userId, project.url, volnaData);
             if (added) addedCount++;
           }
         }
