@@ -29,20 +29,25 @@ model UpworkToken {
 }
 
 model Job {
-  id          String    @id @default(uuid())
-  userId      String
-  jobUrl      String
-  jobId       String?
-  status      String    @default("queued")
-  result      Json?
-  volnaData   Json?     // Store Volna metadata (country, rating, etc.) as fallback
-  error       String?
-  createdAt   DateTime  @default(now())
-  processedAt DateTime?
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String    @id @default(uuid())
+  userId          String
+  jobUrl          String
+  jobId           String?
+  status          String    @default("queued")
+  result          Json?
+  volnaData       Json?     // Store Volna metadata (country, rating, etc.) as fallback
+  error           String?
+  createdAt       DateTime  @default(now())
+  processedAt     DateTime?
+  leadhackStatus  String?   // "pending", "sent", "failed"
+  leadhackSendAt  DateTime? // When to send to LeadHack (processedAt + delay)
+  leadhackSentAt  DateTime? // When actually sent
+  leadhackError   String?
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
+  @@index([leadhackStatus])
 }
 
 model RateLimit {

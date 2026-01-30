@@ -1324,3 +1324,31 @@ input[type="time"] {
     font-weight: 600;
     color: var(--gray-700);
 }
+
+/* LeadHack Status Badges */
+#leadhack-queue-status {
+    display: flex;
+    gap: 12px;
+}
+
+#leadhack-queue-status .badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    background: var(--gray-200);
+}
+
+#leadhack-queue-status .badge.success {
+    background: #d4edda;
+    color: #155724;
+}
+
+#leadhack-queue-status .badge.danger {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+#leadhack-next-send {
+    font-weight: 500;
+    color: var(--primary);
+}

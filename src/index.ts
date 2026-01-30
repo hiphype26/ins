@@ -13,6 +13,7 @@ import { startScheduler } from './services/scheduler';
 import { startVolnaScheduler } from './services/volnaScheduler';
 import { startTokenRefreshScheduler } from './services/tokenRefreshScheduler';
 import { initApiLogger } from './services/apiLogger';
+import { startLeadhackScheduler } from './services/leadhackScheduler';
 
 dotenv.config();
 
@@ -91,6 +92,10 @@ app.listen(PORT, async () => {
   
   // Start token refresh scheduler to keep Upwork tokens alive
   startTokenRefreshScheduler(prisma);
+  
+  // Start LeadHack scheduler for delayed sends
+  startLeadhackScheduler(prisma);
+  console.log('LeadHack scheduler started');
 });
 
 // Graceful shutdown

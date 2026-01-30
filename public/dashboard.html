@@ -368,6 +368,36 @@
                         </div>
                     </div>
 
+                    <!-- LeadHack Settings -->
+                    <div class="settings-section">
+                        <h3>LeadHack Integration</h3>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">Send Delay (Hours)</span>
+                                <span class="setting-description">Wait this many hours before sending completed jobs to LeadHack</span>
+                            </div>
+                            <input type="number" id="leadhack-delay-hours" class="input input-small" value="2" min="0" max="72" step="0.5">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">LeadHack Queue Status</span>
+                                <span class="setting-description">Jobs waiting to be sent to LeadHack</span>
+                            </div>
+                            <div id="leadhack-queue-status">
+                                <span class="badge">Pending: <span id="leadhack-pending">0</span></span>
+                                <span class="badge success">Sent: <span id="leadhack-sent">0</span></span>
+                                <span class="badge danger">Failed: <span id="leadhack-failed">0</span></span>
+                            </div>
+                        </div>
+                        <div class="setting-item" id="leadhack-next-send-row" style="display: none;">
+                            <div class="setting-info">
+                                <span class="setting-label">Next Send At</span>
+                                <span class="setting-description">When the next job will be sent</span>
+                            </div>
+                            <span id="leadhack-next-send">-</span>
+                        </div>
+                    </div>
+
                     <!-- Rate Limits -->
                     <div class="settings-section">
                         <h3>Rate Limits</h3>

@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { fetchJobDetails } from './upworkClient';
-import { sendToLeadHack } from './leadhackClient';
+import { scheduleLeadhackSend } from './leadhackScheduler';
 import { logApiCall } from './apiLogger';
 
 // Default values (can be overridden by settings)
@@ -255,11 +255,8 @@ async function processNextJob(): Promise<void> {
       
       console.log(`Job ${job.id} completed successfully`);
       
-      // Send to LeadHack automatically
-      const volnaData = job.volnaData as any;
-      sendToLeadHack(job.jobUrl, result, volnaData).catch(err => {
-        console.error(`LeadHack send failed for job ${job.id}:`, err);
-      });
+      // Schedule LeadHack send with configured delay
+      await scheduleLeadhackSend(job.id, new Date());
     } catch (error: any) {
       console.error(`Job ${job.id} failed:`, error.message);
       

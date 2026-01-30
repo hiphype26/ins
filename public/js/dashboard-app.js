@@ -903,10 +903,49 @@ async function loadSettings() {
                         document.getElementById(`working-day-${i}`).checked = days.includes(i.toString());
                     }
                     break;
+                case 'leadhack_delay_hours':
+                    document.getElementById('leadhack-delay-hours').value = setting.value || '2';
+                    break;
             }
         });
+        
+        // Load LeadHack queue status
+        await loadLeadhackStatus();
     } catch (error) {
         console.error('Failed to load settings:', error);
+    }
+}
+
+async function loadLeadhackStatus() {
+    try {
+        const stats = await api('/stats/leadhack');
+        
+        document.getElementById('leadhack-pending').textContent = stats.pending || 0;
+        document.getElementById('leadhack-sent').textContent = stats.sent || 0;
+        document.getElementById('leadhack-failed').textContent = stats.failed || 0;
+        
+        const nextSendRow = document.getElementById('leadhack-next-send-row');
+        const nextSendEl = document.getElementById('leadhack-next-send');
+        
+        if (stats.nextSendAt) {
+            const nextDate = new Date(stats.nextSendAt);
+            const now = new Date();
+            const diffMs = nextDate - now;
+            
+            if (diffMs > 0) {
+                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                nextSendEl.textContent = `${nextDate.toLocaleString()} (in ${diffHours}h ${diffMins}m)`;
+                nextSendRow.style.display = 'flex';
+            } else {
+                nextSendEl.textContent = 'Processing soon...';
+                nextSendRow.style.display = 'flex';
+            }
+        } else {
+            nextSendRow.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Failed to load LeadHack status:', error);
     }
 }
 
@@ -1003,7 +1042,8 @@ async function saveSettings() {
         { key: 'working_hours_enabled', value: document.getElementById('working-hours-enabled-toggle').checked.toString() },
         { key: 'working_hours_start', value: document.getElementById('working-hours-start').value },
         { key: 'working_hours_end', value: document.getElementById('working-hours-end').value },
-        { key: 'working_days', value: workingDays.join(',') }
+        { key: 'working_days', value: workingDays.join(',') },
+        { key: 'leadhack_delay_hours', value: document.getElementById('leadhack-delay-hours').value }
     ];
     
     try {

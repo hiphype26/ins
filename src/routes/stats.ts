@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { getApiStats, getHourlyStats, getDailyStats } from '../services/apiLogger';
+import { getLeadhackStats } from '../services/leadhackScheduler';
 
 const router = Router();
 
@@ -113,6 +114,16 @@ router.get('/range', async (req: AuthRequest, res: Response) => {
       peakHour: hourly.peakHour,
       peakCount: hourly.peakCount
     });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get LeadHack queue stats
+router.get('/leadhack', async (req: AuthRequest, res: Response) => {
+  try {
+    const stats = await getLeadhackStats();
+    res.json(stats);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
