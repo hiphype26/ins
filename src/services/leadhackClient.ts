@@ -29,15 +29,16 @@ export async function sendToLeadHack(
     const volna = volnaData || {};
     
     // Build payload with Upwork data, falling back to Volna
+    const clientName = result.client_name || '';
     const payload: LeadHackPayload = {
       link: jobUrl,
       job_heading: result.title || volna.title || '',
       job_description: result.description || '',
-      first_name: result.client_name || '', // Full name in first_name
-      last_name: '', // Empty as requested
+      first_name: clientName,
+      last_name: clientName,
       country: result.client_country || volna.client_country || '',
       city: result.client_city || '',
-      company: result.client_name || '', // Same as first_name (team/company name)
+      company: clientName,
       rss_feed: '1'
     };
     
