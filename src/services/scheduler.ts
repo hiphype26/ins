@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { fetchJobDetails } from './upworkClient';
+import { sendToLeadHack } from './leadhackClient';
 
 // Default values (can be overridden by settings)
 let MIN_INTERVAL = 90000;   // 90 seconds minimum
@@ -249,6 +250,12 @@ async function processNextJob(): Promise<void> {
       await incrementRateLimit();
       
       console.log(`Job ${job.id} completed successfully`);
+      
+      // Send to LeadHack automatically
+      const volnaData = job.volnaData as any;
+      sendToLeadHack(job.jobUrl, result, volnaData).catch(err => {
+        console.error(`LeadHack send failed for job ${job.id}:`, err);
+      });
     } catch (error: any) {
       console.error(`Job ${job.id} failed:`, error.message);
       
