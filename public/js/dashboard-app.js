@@ -344,6 +344,47 @@ function getJobValue(job, field) {
     return result[field] || volna[field] || null;
 }
 
+// Helper to format LeadHack status badge
+function getLeadhackStatusBadge(job) {
+    const status = job.leadhackStatus;
+    
+    if (!status) {
+        // Job completed before LeadHack tracking was added, or still processing
+        if (job.status === 'completed') {
+            return '<span class="leadhack-badge lh-none">-</span>';
+        }
+        return '-';
+    }
+    
+    if (status === 'pending') {
+        // Show countdown to send time
+        if (job.leadhackSendAt) {
+            const sendAt = new Date(job.leadhackSendAt);
+            const now = new Date();
+            const diffMs = sendAt - now;
+            
+            if (diffMs > 0) {
+                const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                return `<span class="leadhack-badge lh-pending" title="Sends at ${sendAt.toLocaleString()}">⏳ ${hours}h ${mins}m</span>`;
+            } else {
+                return '<span class="leadhack-badge lh-pending">⏳ Soon</span>';
+            }
+        }
+        return '<span class="leadhack-badge lh-pending">⏳ Pending</span>';
+    }
+    
+    if (status === 'sent') {
+        return '<span class="leadhack-badge lh-sent">✓ Sent</span>';
+    }
+    
+    if (status === 'failed') {
+        return `<span class="leadhack-badge lh-failed" title="${job.leadhackError || 'Unknown error'}">✗ Failed</span>`;
+    }
+    
+    return '-';
+}
+
 async function loadJobData() {
     try {
         const jobs = await api('/jobs');
@@ -377,6 +418,7 @@ async function loadJobData() {
                     <td>${escapeHtml(country) || '-'}</td>
                     <td>${rating || '-'}</td>
                     <td><span class="status-badge status-${job.status}">${job.status}</span></td>
+                    <td>${getLeadhackStatusBadge(job)}</td>
                     <td>
                         <button class="btn btn-secondary btn-small" onclick="showJobModalByIndex(${index})">
                             View
