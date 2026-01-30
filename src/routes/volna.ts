@@ -40,9 +40,11 @@ async function getCachedOrFetch(apiKey: string, filterId: string): Promise<any[]
     }
   );
   
-  // Debug: log first project to see field names
+  // Debug: log first project to see field names and sample data
   if (response.data.data && response.data.data.length > 0) {
-    console.log('Volna API sample project fields:', Object.keys(response.data.data[0]));
+    const sample = response.data.data[0];
+    console.log('Volna API sample project fields:', Object.keys(sample));
+    console.log('Volna API sample project data:', JSON.stringify(sample, null, 2));
   }
   
   const data = response.data.data || [];
