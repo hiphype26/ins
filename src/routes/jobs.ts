@@ -253,4 +253,35 @@ router.get('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Migrate legacy jobs (without sourceFilterId) to a specific filter
+router.post('/migrate-filter', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const prisma: PrismaClient = req.app.get('prisma');
+  const { filterId } = req.body;
+  
+  if (!filterId) {
+    return res.status(400).json({ error: 'filterId required' });
+  }
+  
+  try {
+    // Count jobs without sourceFilterId
+    const countBefore = await prisma.job.count({
+      where: { sourceFilterId: null }
+    });
+    
+    // Update all jobs without sourceFilterId
+    const result = await prisma.job.updateMany({
+      where: { sourceFilterId: null },
+      data: { sourceFilterId: filterId }
+    });
+    
+    res.json({ 
+      success: true, 
+      message: `Updated ${result.count} jobs to filter #${filterId}`,
+      updated: result.count
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to migrate: ' + error.message });
+  }
+});
+
 export default router;
