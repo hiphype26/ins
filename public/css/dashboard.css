@@ -1382,3 +1382,15 @@ input[type="time"] {
 .leadhack-badge.lh-none {
     color: var(--gray-400);
 }
+
+/* Filter stat divider */
+.filter-stat-divider {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 0 4px 0;
+    margin-top: 8px;
+    border-top: 1px solid var(--gray-200);
+}

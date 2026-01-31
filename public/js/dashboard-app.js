@@ -187,6 +187,24 @@ async function loadVolnaFilterStats() {
             : '';
         
         const byStatus = db.byStatus || {};
+        const processed = response.processed || {};
+        const byHourUTC = processed.byHourUTC || {};
+        
+        // Build hourly rows (group into 2-hour blocks for readability)
+        const hourlyRows = [];
+        for (let h = 0; h < 24; h += 1) {
+            const count = byHourUTC[h] || 0;
+            if (count > 0) {
+                const startHour = h.toString().padStart(2, '0');
+                const endHour = ((h + 1) % 24).toString().padStart(2, '0');
+                hourlyRows.push(`
+                    <div class="filter-stat-row">
+                        <span class="filter-stat-label">${startHour}:00 - ${endHour}:00 UTC</span>
+                        <span class="filter-stat-value highlight">${count}</span>
+                    </div>
+                `);
+            }
+        }
         
         container.innerHTML = `
             <div class="filter-stat-card">
@@ -227,6 +245,18 @@ async function loadVolnaFilterStats() {
                     <span class="filter-stat-label">Failed</span>
                     <span class="filter-stat-value" style="color: var(--danger);">${byStatus.failed || 0}</span>
                 </div>
+            </div>
+            <div class="filter-stat-card">
+                <div class="filter-stat-header">
+                    <span class="filter-stat-id">Jobs Processed by Upwork API</span>
+                    <span class="filter-stat-badge">Last 24h</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Total processed (24h)</span>
+                    <span class="filter-stat-value highlight">${processed.last24Hours || 0}</span>
+                </div>
+                <div class="filter-stat-divider">By Hour (UTC)</div>
+                ${hourlyRows.length > 0 ? hourlyRows.join('') : '<div class="filter-stat-row"><span class="filter-stat-label" style="color: var(--gray-500);">No jobs processed yet</span></div>'}
             </div>
         `;
     } catch (error) {

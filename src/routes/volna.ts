@@ -302,6 +302,28 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
       prisma.job.count({ where: { status: 'failed' } })
     ]);
     
+    // Get jobs processed by Upwork API in last 24 hours (by processedAt)
+    const processedJobs = await prisma.job.findMany({
+      where: {
+        status: 'completed',
+        processedAt: { gte: twentyFourHoursAgo }
+      },
+      select: { processedAt: true }
+    });
+    
+    // Group processed jobs by UTC hour
+    const hourlyProcessed: Record<number, number> = {};
+    for (let i = 0; i < 24; i++) {
+      hourlyProcessed[i] = 0;
+    }
+    
+    processedJobs.forEach(job => {
+      if (job.processedAt) {
+        const hour = job.processedAt.getUTCHours();
+        hourlyProcessed[hour]++;
+      }
+    });
+    
     // Build filter stats - show one entry per configured filter (for UI compatibility)
     const filterStats = config.filterIds.length > 0 
       ? config.filterIds.map((filterId, index) => ({
@@ -332,6 +354,10 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
           completed: completedJobs,
           failed: failedJobs
         }
+      },
+      processed: {
+        last24Hours: processedJobs.length,
+        byHourUTC: hourlyProcessed
       },
       timeRanges: {
         now: now.toISOString(),
