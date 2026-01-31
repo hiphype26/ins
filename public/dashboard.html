@@ -22,6 +22,10 @@
                     <span class="nav-icon">📋</span>
                     <span class="nav-text">Job Data</span>
                 </a>
+                <a href="#api-activity" class="nav-item" data-page="api-activity">
+                    <span class="nav-icon">📈</span>
+                    <span class="nav-text">API Activity</span>
+                </a>
                 <a href="#test-page" class="nav-item" data-page="test-page">
                     <span class="nav-icon">🧪</span>
                     <span class="nav-text">Test Page</span>
@@ -181,6 +185,74 @@
                         <h4>Daily API Calls (Last 7 Days)</h4>
                         <div class="daily-chart" id="daily-chart">
                             <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Activity Page -->
+            <div class="page hidden" id="page-api-activity">
+                <div class="page-header">
+                    <h2>API Activity</h2>
+                    <div class="header-controls">
+                        <select id="activity-days" onchange="loadApiActivity()">
+                            <option value="1">Today</option>
+                            <option value="3">Last 3 Days</option>
+                            <option value="7" selected>Last 7 Days</option>
+                            <option value="14">Last 14 Days</option>
+                            <option value="30">Last 30 Days</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="loadApiActivity()">Refresh</button>
+                    </div>
+                </div>
+                
+                <div class="api-activity-container">
+                    <!-- Upwork Activity -->
+                    <div class="activity-section">
+                        <h3>Upwork API Calls</h3>
+                        <div class="activity-summary" id="upwork-activity-summary">
+                            <!-- Summary stats -->
+                        </div>
+                        <div class="activity-table-container">
+                            <table class="data-table activity-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Hour (UTC)</th>
+                                        <th>Total Calls</th>
+                                        <th>Success</th>
+                                        <th>Failed</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="upwork-activity-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Volna Activity -->
+                    <div class="activity-section">
+                        <h3>Volna API Calls</h3>
+                        <div class="activity-summary" id="volna-activity-summary">
+                            <!-- Summary stats -->
+                        </div>
+                        <div class="volna-filter-stats" id="volna-filter-stats">
+                            <!-- Per-filter API call stats -->
+                        </div>
+                        <div class="activity-table-container">
+                            <table class="data-table activity-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Hour (UTC)</th>
+                                        <th>Total Calls</th>
+                                        <th>Success</th>
+                                        <th>Failed</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="volna-activity-body">
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

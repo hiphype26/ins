@@ -72,10 +72,12 @@ model ApiCallLog {
   id        String   @id @default(uuid())
   apiType   String   // "upwork" or "volna" or "leadhack"
   endpoint  String?  // Optional: specific endpoint called
+  filterId  String?  // For Volna: which filter was called
   success   Boolean  @default(true)
   error     String?
   createdAt DateTime @default(now())
 
   @@index([apiType])
   @@index([createdAt])
+  @@index([filterId])
 }

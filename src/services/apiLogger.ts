@@ -13,7 +13,8 @@ export async function logApiCall(
   apiType: 'upwork' | 'volna' | 'leadhack',
   success: boolean = true,
   endpoint?: string,
-  error?: string
+  error?: string,
+  filterId?: string
 ) {
   try {
     await prismaInstance.apiCallLog.create({
@@ -21,7 +22,8 @@ export async function logApiCall(
         apiType,
         endpoint,
         success,
-        error: error?.substring(0, 500) // Limit error message length
+        error: error?.substring(0, 500), // Limit error message length
+        filterId: filterId || null
       }
     });
   } catch (err) {
@@ -164,4 +166,108 @@ export async function getDailyStats(days: number = 7) {
   });
 
   return daily;
+}
+
+/**
+ * Get detailed API activity - by date, hour, and filter (for Volna)
+ */
+export async function getDetailedApiActivity(startDate: Date, endDate: Date) {
+  const calls = await prismaInstance.apiCallLog.findMany({
+    where: {
+      createdAt: {
+        gte: startDate,
+        lt: endDate
+      }
+    },
+    select: {
+      apiType: true,
+      filterId: true,
+      success: true,
+      createdAt: true
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+
+  // Group by date and hour for Upwork
+  const upworkByDateHour: Record<string, Record<number, { total: number; success: number; failed: number }>> = {};
+  
+  // Group by date and hour for Volna (also by filter)
+  const volnaByDateHour: Record<string, Record<number, { total: number; success: number; failed: number }>> = {};
+  const volnaByFilter: Record<string, { total: number; success: number; failed: number }> = {};
+  
+  // Group by date and hour for LeadHack
+  const leadhackByDateHour: Record<string, Record<number, { total: number; success: number; failed: number }>> = {};
+
+  calls.forEach(call => {
+    const dateKey = call.createdAt.toISOString().split('T')[0];
+    const hour = call.createdAt.getUTCHours();
+    
+    if (call.apiType === 'upwork') {
+      if (!upworkByDateHour[dateKey]) {
+        upworkByDateHour[dateKey] = {};
+      }
+      if (!upworkByDateHour[dateKey][hour]) {
+        upworkByDateHour[dateKey][hour] = { total: 0, success: 0, failed: 0 };
+      }
+      upworkByDateHour[dateKey][hour].total++;
+      if (call.success) {
+        upworkByDateHour[dateKey][hour].success++;
+      } else {
+        upworkByDateHour[dateKey][hour].failed++;
+      }
+    }
+    
+    if (call.apiType === 'volna') {
+      if (!volnaByDateHour[dateKey]) {
+        volnaByDateHour[dateKey] = {};
+      }
+      if (!volnaByDateHour[dateKey][hour]) {
+        volnaByDateHour[dateKey][hour] = { total: 0, success: 0, failed: 0 };
+      }
+      volnaByDateHour[dateKey][hour].total++;
+      if (call.success) {
+        volnaByDateHour[dateKey][hour].success++;
+      } else {
+        volnaByDateHour[dateKey][hour].failed++;
+      }
+      
+      // Track by filter
+      if (call.filterId) {
+        if (!volnaByFilter[call.filterId]) {
+          volnaByFilter[call.filterId] = { total: 0, success: 0, failed: 0 };
+        }
+        volnaByFilter[call.filterId].total++;
+        if (call.success) {
+          volnaByFilter[call.filterId].success++;
+        } else {
+          volnaByFilter[call.filterId].failed++;
+        }
+      }
+    }
+    
+    if (call.apiType === 'leadhack') {
+      if (!leadhackByDateHour[dateKey]) {
+        leadhackByDateHour[dateKey] = {};
+      }
+      if (!leadhackByDateHour[dateKey][hour]) {
+        leadhackByDateHour[dateKey][hour] = { total: 0, success: 0, failed: 0 };
+      }
+      leadhackByDateHour[dateKey][hour].total++;
+      if (call.success) {
+        leadhackByDateHour[dateKey][hour].success++;
+      } else {
+        leadhackByDateHour[dateKey][hour].failed++;
+      }
+    }
+  });
+
+  return {
+    upwork: upworkByDateHour,
+    volna: volnaByDateHour,
+    volnaByFilter,
+    leadhack: leadhackByDateHour,
+    totalCalls: calls.length
+  };
 }

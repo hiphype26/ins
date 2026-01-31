@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { getApiStats, getHourlyStats, getDailyStats } from '../services/apiLogger';
+import { getApiStats, getHourlyStats, getDailyStats, getDetailedApiActivity } from '../services/apiLogger';
 import { getLeadhackStats } from '../services/leadhackScheduler';
 
 const router = Router();
@@ -126,6 +126,30 @@ router.get('/leadhack', async (req: AuthRequest, res: Response) => {
   try {
     const stats = await getLeadhackStats();
     res.json(stats);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get detailed API activity by date, hour, and filter
+router.get('/activity', async (req: AuthRequest, res: Response) => {
+  try {
+    const { days } = req.query;
+    const numDays = parseInt(days as string) || 7;
+    
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - Math.min(numDays, 30));
+    startDate.setUTCHours(0, 0, 0, 0);
+    
+    const activity = await getDetailedApiActivity(startDate, endDate);
+    
+    res.json({
+      days: numDays,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      ...activity
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

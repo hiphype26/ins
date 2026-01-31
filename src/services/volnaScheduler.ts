@@ -114,8 +114,8 @@ async function fetchFromFilter(apiKey: string, filterId: string): Promise<any[]>
       }
     );
     
-    // Log successful Volna API call
-    await logApiCall('volna', true, `filters/${filterId}/projects`);
+    // Log successful Volna API call with filter ID
+    await logApiCall('volna', true, `filters/${filterId}/projects`, undefined, filterId);
     
     const data = response.data.data || [];
     
@@ -125,8 +125,8 @@ async function fetchFromFilter(apiKey: string, filterId: string): Promise<any[]>
     return data;
   } catch (error: any) {
     console.error(`Volna: Failed to fetch from filter ${filterId}:`, error.message);
-    // Log failed Volna API call
-    await logApiCall('volna', false, `filters/${filterId}/projects`, error.message);
+    // Log failed Volna API call with filter ID
+    await logApiCall('volna', false, `filters/${filterId}/projects`, error.message, filterId);
     return [];
   }
 }

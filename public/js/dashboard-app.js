@@ -83,6 +83,8 @@ function showPage(pageName) {
         loadDashboard();
     } else if (pageName === 'job-data') {
         loadJobData();
+    } else if (pageName === 'api-activity') {
+        loadApiActivity();
     } else if (pageName === 'volna-test') {
         // Auto-fetch on page load
         fetchVolnaJobs();
@@ -583,6 +585,181 @@ async function loadDailyChart() {
         console.error('Failed to load daily chart:', error);
         chartContainer.innerHTML = '<p style="color: var(--gray-500);">Failed to load chart</p>';
     }
+}
+
+// API Activity
+async function loadApiActivity() {
+    const days = document.getElementById('activity-days')?.value || 7;
+    
+    try {
+        const activity = await api(`/stats/activity?days=${days}`);
+        
+        // Render Upwork activity
+        renderUpworkActivity(activity.upwork || {}, activity.startDate, activity.endDate);
+        
+        // Render Volna activity
+        renderVolnaActivity(activity.volna || {}, activity.volnaByFilter || {}, activity.startDate, activity.endDate);
+        
+    } catch (error) {
+        console.error('Failed to load API activity:', error);
+    }
+}
+
+function renderUpworkActivity(upworkData, startDate, endDate) {
+    const tbody = document.getElementById('upwork-activity-body');
+    const summaryDiv = document.getElementById('upwork-activity-summary');
+    
+    if (!tbody || !summaryDiv) return;
+    
+    // Calculate totals
+    let totalCalls = 0;
+    let totalSuccess = 0;
+    let totalFailed = 0;
+    const rows = [];
+    
+    // Sort dates descending
+    const dates = Object.keys(upworkData).sort().reverse();
+    
+    for (const date of dates) {
+        const hours = upworkData[date];
+        // Sort hours
+        const sortedHours = Object.keys(hours).map(Number).sort((a, b) => a - b);
+        
+        for (const hour of sortedHours) {
+            const stats = hours[hour];
+            totalCalls += stats.total;
+            totalSuccess += stats.success;
+            totalFailed += stats.failed;
+            
+            const startHour = hour.toString().padStart(2, '0');
+            const endHour = ((hour + 1) % 24).toString().padStart(2, '0');
+            
+            rows.push(`
+                <tr>
+                    <td>${date}</td>
+                    <td>${startHour}:00 - ${endHour}:00</td>
+                    <td><strong>${stats.total}</strong></td>
+                    <td style="color: var(--success);">${stats.success}</td>
+                    <td style="color: var(--danger);">${stats.failed}</td>
+                </tr>
+            `);
+        }
+    }
+    
+    // Summary
+    summaryDiv.innerHTML = `
+        <div class="activity-summary-grid">
+            <div class="summary-stat">
+                <span class="summary-value">${totalCalls}</span>
+                <span class="summary-label">Total Calls</span>
+            </div>
+            <div class="summary-stat success">
+                <span class="summary-value">${totalSuccess}</span>
+                <span class="summary-label">Successful</span>
+            </div>
+            <div class="summary-stat error">
+                <span class="summary-value">${totalFailed}</span>
+                <span class="summary-label">Failed</span>
+            </div>
+            <div class="summary-stat">
+                <span class="summary-value">${totalCalls > 0 ? ((totalSuccess / totalCalls) * 100).toFixed(1) + '%' : '-'}</span>
+                <span class="summary-label">Success Rate</span>
+            </div>
+        </div>
+    `;
+    
+    tbody.innerHTML = rows.length > 0 ? rows.join('') : '<tr><td colspan="5" style="text-align: center; color: var(--gray-500);">No Upwork API calls in this period</td></tr>';
+}
+
+function renderVolnaActivity(volnaData, volnaByFilter, startDate, endDate) {
+    const tbody = document.getElementById('volna-activity-body');
+    const summaryDiv = document.getElementById('volna-activity-summary');
+    const filterStatsDiv = document.getElementById('volna-filter-stats');
+    
+    if (!tbody || !summaryDiv || !filterStatsDiv) return;
+    
+    // Calculate totals
+    let totalCalls = 0;
+    let totalSuccess = 0;
+    let totalFailed = 0;
+    const rows = [];
+    
+    // Sort dates descending
+    const dates = Object.keys(volnaData).sort().reverse();
+    
+    for (const date of dates) {
+        const hours = volnaData[date];
+        const sortedHours = Object.keys(hours).map(Number).sort((a, b) => a - b);
+        
+        for (const hour of sortedHours) {
+            const stats = hours[hour];
+            totalCalls += stats.total;
+            totalSuccess += stats.success;
+            totalFailed += stats.failed;
+            
+            const startHour = hour.toString().padStart(2, '0');
+            const endHour = ((hour + 1) % 24).toString().padStart(2, '0');
+            
+            rows.push(`
+                <tr>
+                    <td>${date}</td>
+                    <td>${startHour}:00 - ${endHour}:00</td>
+                    <td><strong>${stats.total}</strong></td>
+                    <td style="color: var(--success);">${stats.success}</td>
+                    <td style="color: var(--danger);">${stats.failed}</td>
+                </tr>
+            `);
+        }
+    }
+    
+    // Summary
+    summaryDiv.innerHTML = `
+        <div class="activity-summary-grid">
+            <div class="summary-stat">
+                <span class="summary-value">${totalCalls}</span>
+                <span class="summary-label">Total Calls</span>
+            </div>
+            <div class="summary-stat success">
+                <span class="summary-value">${totalSuccess}</span>
+                <span class="summary-label">Successful</span>
+            </div>
+            <div class="summary-stat error">
+                <span class="summary-value">${totalFailed}</span>
+                <span class="summary-label">Failed</span>
+            </div>
+            <div class="summary-stat">
+                <span class="summary-value">${totalCalls > 0 ? ((totalSuccess / totalCalls) * 100).toFixed(1) + '%' : '-'}</span>
+                <span class="summary-label">Success Rate</span>
+            </div>
+        </div>
+    `;
+    
+    // Per-filter stats
+    const filterIds = Object.keys(volnaByFilter);
+    if (filterIds.length > 0) {
+        const filterCards = filterIds.map(filterId => {
+            const stats = volnaByFilter[filterId];
+            return `
+                <div class="filter-api-card">
+                    <div class="filter-api-header">Filter #${escapeHtml(filterId)}</div>
+                    <div class="filter-api-stats">
+                        <span class="filter-api-total">${stats.total} calls</span>
+                        <span class="filter-api-success">${stats.success} ok</span>
+                        <span class="filter-api-failed">${stats.failed} fail</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        filterStatsDiv.innerHTML = `
+            <h4>API Calls by Filter</h4>
+            <div class="filter-api-grid">${filterCards}</div>
+        `;
+    } else {
+        filterStatsDiv.innerHTML = '<p style="color: var(--gray-500);">No filter-specific data yet (filter tracking starts from new calls)</p>';
+    }
+    
+    tbody.innerHTML = rows.length > 0 ? rows.join('') : '<tr><td colspan="5" style="text-align: center; color: var(--gray-500);">No Volna API calls in this period</td></tr>';
 }
 
 // Job Data
