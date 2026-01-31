@@ -188,21 +188,40 @@ async function loadVolnaFilterStats() {
         
         const byStatus = db.byStatus || {};
         const processed = response.processed || {};
-        const byHourUTC = processed.byHourUTC || {};
+        const byHourUTCYesterday = processed.byHourUTCYesterday || {};
+        const byHourUTCToday = processed.byHourUTCToday || {};
         const filterIds = response.filterIds || [];
+        const apiCalls = response.apiCalls || {};
         
         // Format current time for display
         const nowFormatted = timeRanges.nowFormatted || new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
-        const twentyFourAgoFormatted = timeRanges.twentyFourHoursAgoFormatted || '';
+        const yesterdayDate = timeRanges.yesterdayDate || '';
+        const todayDate = timeRanges.todayDate || '';
         
-        // Build hourly rows
-        const hourlyRows = [];
+        // Build hourly rows for yesterday
+        const hourlyRowsYesterday = [];
         for (let h = 0; h < 24; h += 1) {
-            const count = byHourUTC[h] || 0;
+            const count = byHourUTCYesterday[h] || 0;
             if (count > 0) {
                 const startHour = h.toString().padStart(2, '0');
                 const endHour = ((h + 1) % 24).toString().padStart(2, '0');
-                hourlyRows.push(`
+                hourlyRowsYesterday.push(`
+                    <div class="filter-stat-row">
+                        <span class="filter-stat-label">${startHour}:00 - ${endHour}:00 UTC</span>
+                        <span class="filter-stat-value highlight">${count}</span>
+                    </div>
+                `);
+            }
+        }
+        
+        // Build hourly rows for today
+        const hourlyRowsToday = [];
+        for (let h = 0; h < 24; h += 1) {
+            const count = byHourUTCToday[h] || 0;
+            if (count > 0) {
+                const startHour = h.toString().padStart(2, '0');
+                const endHour = ((h + 1) % 24).toString().padStart(2, '0');
+                hourlyRowsToday.push(`
                     <div class="filter-stat-row">
                         <span class="filter-stat-label">${startHour}:00 - ${endHour}:00 UTC</span>
                         <span class="filter-stat-value highlight">${count}</span>
@@ -241,8 +260,12 @@ async function loadVolnaFilterStats() {
                     <span class="filter-stat-value highlight">${db.lastHour || 0}</span>
                 </div>
                 <div class="filter-stat-row">
-                    <span class="filter-stat-label">Jobs added in last 24 hours <span class="time-range">(${twentyFourHourRange})</span></span>
-                    <span class="filter-stat-value highlight">${db.last24Hours || 0}</span>
+                    <span class="filter-stat-label">Jobs added yesterday <span class="time-range">(${yesterdayDate})</span></span>
+                    <span class="filter-stat-value highlight">${db.yesterday || 0}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Jobs added today <span class="time-range">(${todayDate})</span></span>
+                    <span class="filter-stat-value highlight">${db.today || 0}</span>
                 </div>
                 <div class="filter-stat-row">
                     <span class="filter-stat-label">Total jobs in database</span>
@@ -316,36 +339,63 @@ async function loadVolnaFilterStats() {
             </div>
             <div class="filter-stat-card">
                 <div class="filter-stat-header">
-                    <span class="filter-stat-id">API Calls (24h)</span>
+                    <span class="filter-stat-id">API Calls Yesterday</span>
+                    <span class="filter-stat-badge">${yesterdayDate}</span>
                 </div>
                 <div class="filter-stat-row">
                     <span class="filter-stat-label">Upwork</span>
-                    <span class="filter-stat-value">${response.apiCalls?.upwork?.total || 0} <span style="color: var(--danger); font-size: 11px;">(${response.apiCalls?.upwork?.failed || 0} failed)</span></span>
+                    <span class="filter-stat-value">${apiCalls.yesterday?.upwork?.total || 0} <span style="color: var(--danger); font-size: 11px;">(${apiCalls.yesterday?.upwork?.failed || 0} failed)</span></span>
                 </div>
                 <div class="filter-stat-row">
                     <span class="filter-stat-label">Volna</span>
-                    <span class="filter-stat-value">${response.apiCalls?.volna?.total || 0} <span style="color: var(--danger); font-size: 11px;">(${response.apiCalls?.volna?.failed || 0} failed)</span></span>
+                    <span class="filter-stat-value">${apiCalls.yesterday?.volna?.total || 0} <span style="color: var(--danger); font-size: 11px;">(${apiCalls.yesterday?.volna?.failed || 0} failed)</span></span>
                 </div>
                 <div class="filter-stat-row">
                     <span class="filter-stat-label">LeadHack</span>
-                    <span class="filter-stat-value">${response.apiCalls?.leadhack?.total || 0} <span style="color: var(--danger); font-size: 11px;">(${response.apiCalls?.leadhack?.failed || 0} failed)</span></span>
+                    <span class="filter-stat-value">${apiCalls.yesterday?.leadhack?.total || 0} <span style="color: var(--danger); font-size: 11px;">(${apiCalls.yesterday?.leadhack?.failed || 0} failed)</span></span>
                 </div>
             </div>
             <div class="filter-stat-card">
                 <div class="filter-stat-header">
-                    <span class="filter-stat-id">Jobs Processed by Upwork API</span>
-                    <span class="filter-stat-badge">Last 24h</span>
+                    <span class="filter-stat-id">API Calls Today</span>
+                    <span class="filter-stat-badge">${todayDate}</span>
                 </div>
                 <div class="filter-stat-row">
-                    <span class="filter-stat-label">Date Range</span>
-                    <span class="filter-stat-value time-display">${twentyFourAgoFormatted} → Now</span>
+                    <span class="filter-stat-label">Upwork</span>
+                    <span class="filter-stat-value">${apiCalls.today?.upwork?.total || 0} <span style="color: var(--danger); font-size: 11px;">(${apiCalls.today?.upwork?.failed || 0} failed)</span></span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Volna</span>
+                    <span class="filter-stat-value">${apiCalls.today?.volna?.total || 0} <span style="color: var(--danger); font-size: 11px;">(${apiCalls.today?.volna?.failed || 0} failed)</span></span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">LeadHack</span>
+                    <span class="filter-stat-value">${apiCalls.today?.leadhack?.total || 0} <span style="color: var(--danger); font-size: 11px;">(${apiCalls.today?.leadhack?.failed || 0} failed)</span></span>
+                </div>
+            </div>
+            <div class="filter-stat-card">
+                <div class="filter-stat-header">
+                    <span class="filter-stat-id">Processed Yesterday</span>
+                    <span class="filter-stat-badge">${yesterdayDate}</span>
                 </div>
                 <div class="filter-stat-row">
                     <span class="filter-stat-label">Total processed</span>
-                    <span class="filter-stat-value highlight">${processed.last24Hours || 0}</span>
+                    <span class="filter-stat-value highlight">${processed.yesterday || 0}</span>
                 </div>
                 <div class="filter-stat-divider">By Hour (UTC)</div>
-                ${hourlyRows.length > 0 ? hourlyRows.join('') : '<div class="filter-stat-row"><span class="filter-stat-label" style="color: var(--gray-500);">No jobs processed yet</span></div>'}
+                ${hourlyRowsYesterday.length > 0 ? hourlyRowsYesterday.join('') : '<div class="filter-stat-row"><span class="filter-stat-label" style="color: var(--gray-500);">No jobs processed</span></div>'}
+            </div>
+            <div class="filter-stat-card">
+                <div class="filter-stat-header">
+                    <span class="filter-stat-id">Processed Today</span>
+                    <span class="filter-stat-badge">${todayDate}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Total processed</span>
+                    <span class="filter-stat-value highlight">${processed.today || 0}</span>
+                </div>
+                <div class="filter-stat-divider">By Hour (UTC)</div>
+                ${hourlyRowsToday.length > 0 ? hourlyRowsToday.join('') : '<div class="filter-stat-row"><span class="filter-stat-label" style="color: var(--gray-500);">No jobs processed yet</span></div>'}
             </div>
         `;
     } catch (error) {

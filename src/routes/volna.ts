@@ -277,10 +277,14 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
     
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    
+    // Yesterday (previous calendar day in UTC)
+    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+    const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+    const yesterdayEnd = new Date(todayStart.getTime() - 1); // End of yesterday (23:59:59.999)
     
     // Get job counts from database based on createdAt
-    const [totalJobs, lastHourJobs, last24HoursJobs] = await Promise.all([
+    const [totalJobs, lastHourJobs, yesterdayJobs, todayJobs] = await Promise.all([
       prisma.job.count(),
       prisma.job.count({
         where: {
@@ -289,7 +293,12 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
       }),
       prisma.job.count({
         where: {
-          createdAt: { gte: twentyFourHoursAgo }
+          createdAt: { gte: yesterdayStart, lt: todayStart }
+        }
+      }),
+      prisma.job.count({
+        where: {
+          createdAt: { gte: todayStart }
         }
       })
     ]);
@@ -302,30 +311,68 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
       prisma.job.count({ where: { status: 'failed' } })
     ]);
     
-    // Get jobs processed by Upwork API in last 24 hours (by processedAt)
-    const processedJobs = await prisma.job.findMany({
+    // Get jobs processed by Upwork API yesterday (by processedAt)
+    const processedJobsYesterday = await prisma.job.findMany({
       where: {
         status: 'completed',
-        processedAt: { gte: twentyFourHoursAgo }
+        processedAt: { gte: yesterdayStart, lt: todayStart }
       },
       select: { processedAt: true, createdAt: true, result: true }
     });
     
-    // Group processed jobs by UTC hour
-    const hourlyProcessed: Record<number, number> = {};
+    // Get jobs processed today (for comparison)
+    const processedJobsToday = await prisma.job.findMany({
+      where: {
+        status: 'completed',
+        processedAt: { gte: todayStart }
+      },
+      select: { processedAt: true, createdAt: true, result: true }
+    });
+    
+    // Group yesterday's processed jobs by UTC hour
+    const hourlyProcessedYesterday: Record<number, number> = {};
     for (let i = 0; i < 24; i++) {
-      hourlyProcessed[i] = 0;
+      hourlyProcessedYesterday[i] = 0;
     }
     
-    // Calculate average processing time and country stats
+    // Group today's processed jobs by UTC hour
+    const hourlyProcessedToday: Record<number, number> = {};
+    for (let i = 0; i < 24; i++) {
+      hourlyProcessedToday[i] = 0;
+    }
+    
+    // Calculate average processing time and country stats from ALL completed jobs
     let totalProcessingTime = 0;
     let processedWithTime = 0;
     const countryStats: Record<string, number> = {};
     
-    processedJobs.forEach(job => {
+    // Process yesterday's jobs
+    processedJobsYesterday.forEach(job => {
       if (job.processedAt) {
         const hour = job.processedAt.getUTCHours();
-        hourlyProcessed[hour]++;
+        hourlyProcessedYesterday[hour]++;
+        
+        // Calculate processing time
+        if (job.createdAt) {
+          const processingTime = job.processedAt.getTime() - job.createdAt.getTime();
+          totalProcessingTime += processingTime;
+          processedWithTime++;
+        }
+        
+        // Count by country
+        const result = job.result as any;
+        if (result && result.client_country) {
+          const country = result.client_country;
+          countryStats[country] = (countryStats[country] || 0) + 1;
+        }
+      }
+    });
+    
+    // Process today's jobs
+    processedJobsToday.forEach(job => {
+      if (job.processedAt) {
+        const hour = job.processedAt.getUTCHours();
+        hourlyProcessedToday[hour]++;
         
         // Calculate processing time
         if (job.createdAt) {
@@ -373,40 +420,56 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
       select: { leadhackSendAt: true }
     });
     
-    // Get API call stats (last 24h)
-    const [apiUpwork, apiVolna, apiLeadhack, apiUpworkFailed, apiVolnaFailed, apiLeadhackFailed] = await Promise.all([
-      prisma.apiCallLog.count({ where: { apiType: 'upwork', createdAt: { gte: twentyFourHoursAgo } } }),
-      prisma.apiCallLog.count({ where: { apiType: 'volna', createdAt: { gte: twentyFourHoursAgo } } }),
-      prisma.apiCallLog.count({ where: { apiType: 'leadhack', createdAt: { gte: twentyFourHoursAgo } } }),
-      prisma.apiCallLog.count({ where: { apiType: 'upwork', success: false, createdAt: { gte: twentyFourHoursAgo } } }),
-      prisma.apiCallLog.count({ where: { apiType: 'volna', success: false, createdAt: { gte: twentyFourHoursAgo } } }),
-      prisma.apiCallLog.count({ where: { apiType: 'leadhack', success: false, createdAt: { gte: twentyFourHoursAgo } } })
+    // Get API call stats for yesterday
+    const [apiUpworkYesterday, apiVolnaYesterday, apiLeadhackYesterday, apiUpworkFailedYesterday, apiVolnaFailedYesterday, apiLeadhackFailedYesterday] = await Promise.all([
+      prisma.apiCallLog.count({ where: { apiType: 'upwork', createdAt: { gte: yesterdayStart, lt: todayStart } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'volna', createdAt: { gte: yesterdayStart, lt: todayStart } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'leadhack', createdAt: { gte: yesterdayStart, lt: todayStart } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'upwork', success: false, createdAt: { gte: yesterdayStart, lt: todayStart } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'volna', success: false, createdAt: { gte: yesterdayStart, lt: todayStart } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'leadhack', success: false, createdAt: { gte: yesterdayStart, lt: todayStart } } })
+    ]);
+    
+    // Get API call stats for today
+    const [apiUpworkToday, apiVolnaToday, apiLeadhackToday, apiUpworkFailedToday, apiVolnaFailedToday, apiLeadhackFailedToday] = await Promise.all([
+      prisma.apiCallLog.count({ where: { apiType: 'upwork', createdAt: { gte: todayStart } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'volna', createdAt: { gte: todayStart } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'leadhack', createdAt: { gte: todayStart } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'upwork', success: false, createdAt: { gte: todayStart } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'volna', success: false, createdAt: { gte: todayStart } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'leadhack', success: false, createdAt: { gte: todayStart } } })
     ]);
     
     // Build filter stats - show one entry per configured filter (for UI compatibility)
     const filterStats = config.filterIds.length > 0 
       ? config.filterIds.map((filterId, index) => ({
           filterId,
-          // Only show totals on the first filter to avoid confusion
           total: index === 0 ? totalJobs : 0,
           lastHour: index === 0 ? lastHourJobs : 0,
-          last24Hours: index === 0 ? last24HoursJobs : 0,
+          yesterday: index === 0 ? yesterdayJobs : 0,
+          today: index === 0 ? todayJobs : 0,
           status: 'active'
         }))
       : [{
           filterId: 'all',
           total: totalJobs,
           lastHour: lastHourJobs,
-          last24Hours: last24HoursJobs,
+          yesterday: yesterdayJobs,
+          today: todayJobs,
           status: 'active'
         }];
+    
+    // Format dates for display
+    const yesterdayDateStr = yesterdayStart.toISOString().split('T')[0];
+    const todayDateStr = todayStart.toISOString().split('T')[0];
     
     res.json({ 
       filters: filterStats,
       database: {
         total: totalJobs,
         lastHour: lastHourJobs,
-        last24Hours: last24HoursJobs,
+        yesterday: yesterdayJobs,
+        today: todayJobs,
         byStatus: {
           queued: queuedJobs,
           processing: processingJobs,
@@ -418,8 +481,10 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
         topCountries
       },
       processed: {
-        last24Hours: processedJobs.length,
-        byHourUTC: hourlyProcessed
+        yesterday: processedJobsYesterday.length,
+        today: processedJobsToday.length,
+        byHourUTCYesterday: hourlyProcessedYesterday,
+        byHourUTCToday: hourlyProcessedToday
       },
       leadhack: {
         pending: leadhackPending,
@@ -428,17 +493,26 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
         nextSendAt: nextLeadhackJob?.leadhackSendAt?.toISOString() || null
       },
       apiCalls: {
-        upwork: { total: apiUpwork, failed: apiUpworkFailed },
-        volna: { total: apiVolna, failed: apiVolnaFailed },
-        leadhack: { total: apiLeadhack, failed: apiLeadhackFailed }
+        yesterday: {
+          upwork: { total: apiUpworkYesterday, failed: apiUpworkFailedYesterday },
+          volna: { total: apiVolnaYesterday, failed: apiVolnaFailedYesterday },
+          leadhack: { total: apiLeadhackYesterday, failed: apiLeadhackFailedYesterday }
+        },
+        today: {
+          upwork: { total: apiUpworkToday, failed: apiUpworkFailedToday },
+          volna: { total: apiVolnaToday, failed: apiVolnaFailedToday },
+          leadhack: { total: apiLeadhackToday, failed: apiLeadhackFailedToday }
+        }
       },
       filterIds: config.filterIds,
       timeRanges: {
         now: now.toISOString(),
         nowFormatted: now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC',
         oneHourAgo: oneHourAgo.toISOString(),
-        twentyFourHoursAgo: twentyFourHoursAgo.toISOString(),
-        twentyFourHoursAgoFormatted: twentyFourHoursAgo.toISOString().replace('T', ' ').substring(0, 19) + ' UTC'
+        yesterdayStart: yesterdayStart.toISOString(),
+        yesterdayDate: yesterdayDateStr,
+        todayStart: todayStart.toISOString(),
+        todayDate: todayDateStr
       }
     });
   } catch (error: any) {
