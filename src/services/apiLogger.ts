@@ -69,7 +69,7 @@ export async function getApiStats(startDate: Date, endDate: Date) {
 }
 
 /**
- * Get hourly breakdown for peak hours analysis
+ * Get hourly breakdown for peak hours analysis - by API type
  */
 export async function getHourlyStats(startDate: Date, endDate: Date) {
   const calls = await prismaInstance.apiCallLog.findMany({
@@ -85,31 +85,48 @@ export async function getHourlyStats(startDate: Date, endDate: Date) {
     }
   });
 
-  // Group by hour (0-23)
-  const hourly: Record<number, number> = {};
-  for (let i = 0; i < 24; i++) {
-    hourly[i] = 0;
-  }
-
-  calls.forEach(call => {
-    const hour = call.createdAt.getUTCHours();
-    hourly[hour]++;
-  });
-
-  // Find peak hour
-  let peakHour = 0;
-  let peakCount = 0;
-  Object.entries(hourly).forEach(([hour, count]) => {
-    if (count > peakCount) {
-      peakCount = count;
-      peakHour = parseInt(hour);
+  // Group by hour (0-23) for each API type
+  const hourlyByType: Record<string, Record<number, number>> = {
+    upwork: {},
+    volna: {},
+    leadhack: {},
+    total: {}
+  };
+  
+  // Initialize all hours to 0
+  ['upwork', 'volna', 'leadhack', 'total'].forEach(type => {
+    for (let i = 0; i < 24; i++) {
+      hourlyByType[type][i] = 0;
     }
   });
 
+  calls.forEach(call => {
+    const hour = call.createdAt.getUTCHours();
+    hourlyByType[call.apiType][hour]++;
+    hourlyByType.total[hour]++;
+  });
+
+  // Find peak hour for each API type
+  const findPeak = (hourly: Record<number, number>) => {
+    let peakHour = -1;
+    let peakCount = 0;
+    Object.entries(hourly).forEach(([hour, count]) => {
+      if (count > peakCount) {
+        peakCount = count;
+        peakHour = parseInt(hour);
+      }
+    });
+    return { peakHour, peakCount };
+  };
+
   return {
-    hourly,
-    peakHour,
-    peakCount
+    hourlyByType,
+    peaks: {
+      upwork: findPeak(hourlyByType.upwork),
+      volna: findPeak(hourlyByType.volna),
+      leadhack: findPeak(hourlyByType.leadhack),
+      total: findPeak(hourlyByType.total)
+    }
   };
 }
 

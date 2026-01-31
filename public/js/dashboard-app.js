@@ -441,14 +441,52 @@ async function loadApiStats(range = 'today') {
         }
         document.getElementById('api-failed-calls').textContent = totalFailed;
         
-        // Load hourly stats for peak hour
+        // Load hourly stats for peak hours by API
         const hourly = await api(`/stats/hourly?range=${range}`);
-        if (hourly.peakHour !== undefined && hourly.peakCount > 0) {
-            const hour = hourly.peakHour;
-            document.getElementById('api-peak-hour').textContent = 
-                `${hour.toString().padStart(2, '0')}:00 (${hourly.peakCount})`;
+        const peaks = hourly.peaks || {};
+        
+        // Get date label based on range
+        const now = new Date();
+        let dateLabel = now.toISOString().split('T')[0]; // Today
+        if (range === 'week') {
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            dateLabel = `${weekAgo.toISOString().split('T')[0]} - ${dateLabel}`;
+        } else if (range === 'month') {
+            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            dateLabel = `${monthAgo.toISOString().split('T')[0]} - ${dateLabel}`;
+        }
+        
+        // Update Upwork peak
+        if (peaks.upwork && peaks.upwork.peakCount > 0) {
+            const hour = peaks.upwork.peakHour;
+            document.getElementById('peak-upwork').textContent = 
+                `${hour.toString().padStart(2, '0')}:00 (${peaks.upwork.peakCount} calls)`;
+            document.getElementById('peak-upwork-date').textContent = dateLabel;
         } else {
-            document.getElementById('api-peak-hour').textContent = '-';
+            document.getElementById('peak-upwork').textContent = '-';
+            document.getElementById('peak-upwork-date').textContent = '';
+        }
+        
+        // Update Volna peak
+        if (peaks.volna && peaks.volna.peakCount > 0) {
+            const hour = peaks.volna.peakHour;
+            document.getElementById('peak-volna').textContent = 
+                `${hour.toString().padStart(2, '0')}:00 (${peaks.volna.peakCount} calls)`;
+            document.getElementById('peak-volna-date').textContent = dateLabel;
+        } else {
+            document.getElementById('peak-volna').textContent = '-';
+            document.getElementById('peak-volna-date').textContent = '';
+        }
+        
+        // Update LeadHack peak
+        if (peaks.leadhack && peaks.leadhack.peakCount > 0) {
+            const hour = peaks.leadhack.peakHour;
+            document.getElementById('peak-leadhack').textContent = 
+                `${hour.toString().padStart(2, '0')}:00 (${peaks.leadhack.peakCount} calls)`;
+            document.getElementById('peak-leadhack-date').textContent = dateLabel;
+        } else {
+            document.getElementById('peak-leadhack').textContent = '-';
+            document.getElementById('peak-leadhack-date').textContent = '';
         }
         
         // Load daily chart

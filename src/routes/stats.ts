@@ -42,7 +42,7 @@ router.get('/summary', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Get hourly breakdown (for peak hours)
+// Get hourly breakdown (for peak hours) - by API type
 router.get('/hourly', async (req: AuthRequest, res: Response) => {
   try {
     const { range } = req.query;
@@ -65,7 +65,10 @@ router.get('/hourly', async (req: AuthRequest, res: Response) => {
     
     res.json({
       range: range || 'today',
-      ...stats
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      hourlyByType: stats.hourlyByType,
+      peaks: stats.peaks
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -110,9 +113,8 @@ router.get('/range', async (req: AuthRequest, res: Response) => {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       ...stats,
-      hourly: hourly.hourly,
-      peakHour: hourly.peakHour,
-      peakCount: hourly.peakCount
+      hourlyByType: hourly.hourlyByType,
+      peaks: hourly.peaks
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

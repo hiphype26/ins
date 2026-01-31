@@ -149,18 +149,31 @@
                                 <span class="stat-label">LeadHack Calls</span>
                             </div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-icon">⏰</div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="api-peak-hour">-</span>
-                                <span class="stat-label">Peak Hour (UTC)</span>
-                            </div>
-                        </div>
                         <div class="stat-card error">
                             <div class="stat-icon">⚠️</div>
                             <div class="stat-info">
                                 <span class="stat-value" id="api-failed-calls">0</span>
                                 <span class="stat-label">Failed Calls</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="peak-hours-container">
+                        <h4>Peak Hours by API (UTC)</h4>
+                        <div class="peak-hours-grid">
+                            <div class="peak-hour-card upwork">
+                                <div class="peak-api-name">Upwork</div>
+                                <div class="peak-hour-value" id="peak-upwork">-</div>
+                                <div class="peak-hour-date" id="peak-upwork-date"></div>
+                            </div>
+                            <div class="peak-hour-card volna">
+                                <div class="peak-api-name">Volna</div>
+                                <div class="peak-hour-value" id="peak-volna">-</div>
+                                <div class="peak-hour-date" id="peak-volna-date"></div>
+                            </div>
+                            <div class="peak-hour-card leadhack">
+                                <div class="peak-api-name">LeadHack</div>
+                                <div class="peak-hour-value" id="peak-leadhack">-</div>
+                                <div class="peak-hour-date" id="peak-leadhack-date"></div>
                             </div>
                         </div>
                     </div>

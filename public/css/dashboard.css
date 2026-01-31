@@ -1412,3 +1412,73 @@ input[type="time"] {
     font-size: 12px;
     color: var(--gray-600);
 }
+
+/* Peak Hours Grid */
+.peak-hours-container {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--gray-200);
+}
+
+.peak-hours-container h4 {
+    margin: 0 0 1rem 0;
+    color: var(--gray-700);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.peak-hours-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.peak-hour-card {
+    background: var(--gray-50);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    border-left: 3px solid var(--gray-300);
+}
+
+.peak-hour-card.upwork {
+    border-left-color: var(--success);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, var(--gray-50) 100%);
+}
+
+.peak-hour-card.volna {
+    border-left-color: var(--primary);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, var(--gray-50) 100%);
+}
+
+.peak-hour-card.leadhack {
+    border-left-color: var(--warning);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, var(--gray-50) 100%);
+}
+
+.peak-api-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--gray-500);
+    margin-bottom: 0.5rem;
+}
+
+.peak-hour-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+.peak-hour-date {
+    font-size: 0.7rem;
+    color: var(--gray-500);
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .peak-hours-grid {
+        grid-template-columns: 1fr;
+    }
+}
