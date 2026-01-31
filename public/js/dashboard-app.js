@@ -269,6 +269,67 @@ async function loadVolnaFilterStats() {
                     <span class="filter-stat-label">Failed</span>
                     <span class="filter-stat-value" style="color: var(--danger);">${byStatus.failed || 0}</span>
                 </div>
+                <div class="filter-stat-divider">Performance</div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Success Rate</span>
+                    <span class="filter-stat-value ${db.successRate >= 90 ? 'highlight' : ''}" style="${db.successRate < 90 ? 'color: var(--warning);' : ''}">${db.successRate || 0}%</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Avg Processing Time</span>
+                    <span class="filter-stat-value">${db.avgProcessingTimeMinutes || 0} min</span>
+                </div>
+            </div>
+            <div class="filter-stat-card">
+                <div class="filter-stat-header">
+                    <span class="filter-stat-id">Top Countries</span>
+                    <span class="filter-stat-badge">Clients</span>
+                </div>
+                ${(db.topCountries && db.topCountries.length > 0) ? db.topCountries.map((c, i) => `
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">${i + 1}. ${c.country}</span>
+                    <span class="filter-stat-value">${c.count}</span>
+                </div>
+                `).join('') : '<div class="filter-stat-row"><span class="filter-stat-label" style="color: var(--gray-500);">No country data yet</span></div>'}
+            </div>
+            <div class="filter-stat-card">
+                <div class="filter-stat-header">
+                    <span class="filter-stat-id">LeadHack Status</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Pending</span>
+                    <span class="filter-stat-value">${response.leadhack?.pending || 0}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Sent</span>
+                    <span class="filter-stat-value highlight">${response.leadhack?.sent || 0}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Failed</span>
+                    <span class="filter-stat-value" style="color: var(--danger);">${response.leadhack?.failed || 0}</span>
+                </div>
+                ${response.leadhack?.nextSendAt ? `
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Next Send</span>
+                    <span class="filter-stat-value time-display">${new Date(response.leadhack.nextSendAt).toISOString().replace('T', ' ').substring(0, 19)} UTC</span>
+                </div>
+                ` : ''}
+            </div>
+            <div class="filter-stat-card">
+                <div class="filter-stat-header">
+                    <span class="filter-stat-id">API Calls (24h)</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Upwork</span>
+                    <span class="filter-stat-value">${response.apiCalls?.upwork?.total || 0} <span style="color: var(--danger); font-size: 11px;">(${response.apiCalls?.upwork?.failed || 0} failed)</span></span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Volna</span>
+                    <span class="filter-stat-value">${response.apiCalls?.volna?.total || 0} <span style="color: var(--danger); font-size: 11px;">(${response.apiCalls?.volna?.failed || 0} failed)</span></span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">LeadHack</span>
+                    <span class="filter-stat-value">${response.apiCalls?.leadhack?.total || 0} <span style="color: var(--danger); font-size: 11px;">(${response.apiCalls?.leadhack?.failed || 0} failed)</span></span>
+                </div>
             </div>
             <div class="filter-stat-card">
                 <div class="filter-stat-header">

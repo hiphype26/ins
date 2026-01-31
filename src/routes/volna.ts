@@ -308,7 +308,7 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
         status: 'completed',
         processedAt: { gte: twentyFourHoursAgo }
       },
-      select: { processedAt: true }
+      select: { processedAt: true, createdAt: true, result: true }
     });
     
     // Group processed jobs by UTC hour
@@ -317,12 +317,71 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
       hourlyProcessed[i] = 0;
     }
     
+    // Calculate average processing time and country stats
+    let totalProcessingTime = 0;
+    let processedWithTime = 0;
+    const countryStats: Record<string, number> = {};
+    
     processedJobs.forEach(job => {
       if (job.processedAt) {
         const hour = job.processedAt.getUTCHours();
         hourlyProcessed[hour]++;
+        
+        // Calculate processing time
+        if (job.createdAt) {
+          const processingTime = job.processedAt.getTime() - job.createdAt.getTime();
+          totalProcessingTime += processingTime;
+          processedWithTime++;
+        }
+        
+        // Count by country
+        const result = job.result as any;
+        if (result && result.client_country) {
+          const country = result.client_country;
+          countryStats[country] = (countryStats[country] || 0) + 1;
+        }
       }
     });
+    
+    // Calculate success rate
+    const successRate = (completedJobs + failedJobs) > 0 
+      ? Math.round((completedJobs / (completedJobs + failedJobs)) * 100) 
+      : 0;
+    
+    // Calculate average processing time in minutes
+    const avgProcessingTime = processedWithTime > 0 
+      ? Math.round((totalProcessingTime / processedWithTime) / 60000) 
+      : 0;
+    
+    // Get top 5 countries
+    const topCountries = Object.entries(countryStats)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([country, count]) => ({ country, count }));
+    
+    // Get LeadHack stats
+    const [leadhackPending, leadhackSent, leadhackFailed] = await Promise.all([
+      prisma.job.count({ where: { leadhackStatus: 'pending' } }),
+      prisma.job.count({ where: { leadhackStatus: 'sent' } }),
+      prisma.job.count({ where: { leadhackStatus: 'failed' } })
+    ]);
+    
+    // Get next LeadHack send time
+    const nextLeadhackJob = await prisma.job.findFirst({
+      where: { leadhackStatus: 'pending', status: 'completed' },
+      orderBy: { leadhackSendAt: 'asc' },
+      select: { leadhackSendAt: true }
+    });
+    
+    // Get API call stats (last 24h)
+    const [apiUpwork, apiVolna, apiLeadhack, apiUpworkFailed, apiVolnaFailed, apiLeadhackFailed] = await Promise.all([
+      prisma.apiCallLog.count({ where: { apiType: 'upwork', createdAt: { gte: twentyFourHoursAgo } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'volna', createdAt: { gte: twentyFourHoursAgo } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'leadhack', createdAt: { gte: twentyFourHoursAgo } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'upwork', success: false, createdAt: { gte: twentyFourHoursAgo } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'volna', success: false, createdAt: { gte: twentyFourHoursAgo } } }),
+      prisma.apiCallLog.count({ where: { apiType: 'leadhack', success: false, createdAt: { gte: twentyFourHoursAgo } } })
+    ]);
     
     // Build filter stats - show one entry per configured filter (for UI compatibility)
     const filterStats = config.filterIds.length > 0 
@@ -353,11 +412,25 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
           processing: processingJobs,
           completed: completedJobs,
           failed: failedJobs
-        }
+        },
+        successRate,
+        avgProcessingTimeMinutes: avgProcessingTime,
+        topCountries
       },
       processed: {
         last24Hours: processedJobs.length,
         byHourUTC: hourlyProcessed
+      },
+      leadhack: {
+        pending: leadhackPending,
+        sent: leadhackSent,
+        failed: leadhackFailed,
+        nextSendAt: nextLeadhackJob?.leadhackSendAt?.toISOString() || null
+      },
+      apiCalls: {
+        upwork: { total: apiUpwork, failed: apiUpworkFailed },
+        volna: { total: apiVolna, failed: apiVolnaFailed },
+        leadhack: { total: apiLeadhack, failed: apiLeadhackFailed }
       },
       filterIds: config.filterIds,
       timeRanges: {
