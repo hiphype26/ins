@@ -440,24 +440,68 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
       prisma.apiCallLog.count({ where: { apiType: 'leadhack', success: false, createdAt: { gte: todayStart } } })
     ]);
     
-    // Build filter stats - show one entry per configured filter (for UI compatibility)
-    const filterStats = config.filterIds.length > 0 
-      ? config.filterIds.map((filterId, index) => ({
-          filterId,
-          total: index === 0 ? totalJobs : 0,
-          lastHour: index === 0 ? lastHourJobs : 0,
-          yesterday: index === 0 ? yesterdayJobs : 0,
-          today: index === 0 ? todayJobs : 0,
-          status: 'active'
-        }))
-      : [{
-          filterId: 'all',
-          total: totalJobs,
-          lastHour: lastHourJobs,
-          yesterday: yesterdayJobs,
-          today: todayJobs,
-          status: 'active'
-        }];
+    // Get per-filter stats from database
+    const perFilterStats: Record<string, { total: number; yesterday: number; today: number; completed: number }> = {};
+    
+    // Initialize stats for all configured filters
+    for (const filterId of config.filterIds) {
+      perFilterStats[filterId] = { total: 0, yesterday: 0, today: 0, completed: 0 };
+    }
+    
+    // Get all jobs with sourceFilterId
+    const jobsWithFilter = await prisma.job.findMany({
+      where: {
+        sourceFilterId: { not: null }
+      },
+      select: {
+        sourceFilterId: true,
+        createdAt: true,
+        status: true
+      }
+    });
+    
+    // Count per filter
+    for (const job of jobsWithFilter) {
+      const filterId = job.sourceFilterId!;
+      if (!perFilterStats[filterId]) {
+        perFilterStats[filterId] = { total: 0, yesterday: 0, today: 0, completed: 0 };
+      }
+      perFilterStats[filterId].total++;
+      if (job.status === 'completed') {
+        perFilterStats[filterId].completed++;
+      }
+      if (job.createdAt >= yesterdayStart && job.createdAt < todayStart) {
+        perFilterStats[filterId].yesterday++;
+      }
+      if (job.createdAt >= todayStart) {
+        perFilterStats[filterId].today++;
+      }
+    }
+    
+    // Count jobs without filter ID (legacy jobs)
+    const jobsWithoutFilter = totalJobs - jobsWithFilter.length;
+    
+    // Build filter stats array for response
+    const filterStats = config.filterIds.map(filterId => ({
+      filterId,
+      total: perFilterStats[filterId]?.total || 0,
+      yesterday: perFilterStats[filterId]?.yesterday || 0,
+      today: perFilterStats[filterId]?.today || 0,
+      completed: perFilterStats[filterId]?.completed || 0,
+      status: 'active'
+    }));
+    
+    // Add "unknown" entry for legacy jobs without filter tracking
+    if (jobsWithoutFilter > 0) {
+      filterStats.push({
+        filterId: 'unknown (legacy)',
+        total: jobsWithoutFilter,
+        yesterday: 0,
+        today: 0,
+        completed: 0,
+        status: 'legacy'
+      });
+    }
     
     // Format dates for display
     const yesterdayDateStr = yesterdayStart.toISOString().split('T')[0];
@@ -465,6 +509,7 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
     
     res.json({ 
       filters: filterStats,
+      perFilterStats,
       database: {
         total: totalJobs,
         lastHour: lastHourJobs,

@@ -36,6 +36,7 @@ model Job {
   status          String    @default("queued")
   result          Json?
   volnaData       Json?     // Store Volna metadata (country, rating, etc.) as fallback
+  sourceFilterId  String?   // Which Volna filter this job came from
   error           String?
   createdAt       DateTime  @default(now())
   processedAt     DateTime?
@@ -48,6 +49,7 @@ model Job {
   @@index([userId])
   @@index([status])
   @@index([leadhackStatus])
+  @@index([sourceFilterId])
 }
 
 model RateLimit {

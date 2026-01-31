@@ -235,6 +235,33 @@ async function loadVolnaFilterStats() {
             ? filterIds.map(id => `<span class="filter-id-tag">#${id}</span>`).join(' ')
             : '<span style="color: var(--gray-500);">None configured</span>';
         
+        // Build per-filter stats cards
+        const filters = response.filters || [];
+        const perFilterCards = filters.map(f => `
+            <div class="filter-stat-card per-filter-card">
+                <div class="filter-stat-header">
+                    <span class="filter-stat-id">Filter #${escapeHtml(f.filterId)}</span>
+                    <span class="filter-stat-badge ${f.status === 'legacy' ? 'legacy' : 'active'}">${f.status}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Total jobs</span>
+                    <span class="filter-stat-value">${f.total || 0}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Yesterday <span class="time-range">(${yesterdayDate})</span></span>
+                    <span class="filter-stat-value highlight">${f.yesterday || 0}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Today <span class="time-range">(${todayDate})</span></span>
+                    <span class="filter-stat-value highlight">${f.today || 0}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Completed</span>
+                    <span class="filter-stat-value" style="color: var(--success);">${f.completed || 0}</span>
+                </div>
+            </div>
+        `).join('');
+        
         container.innerHTML = `
             <div class="filter-stat-card">
                 <div class="filter-stat-header">
@@ -270,6 +297,15 @@ async function loadVolnaFilterStats() {
                 <div class="filter-stat-row">
                     <span class="filter-stat-label">Total jobs in database</span>
                     <span class="filter-stat-value">${db.total || 0}</span>
+                </div>
+            </div>
+            <div class="filter-stat-card full-width">
+                <div class="filter-stat-header">
+                    <span class="filter-stat-id">Jobs by Filter</span>
+                    <span class="filter-stat-badge">Per Filter Stats</span>
+                </div>
+                <div class="per-filter-grid">
+                    ${perFilterCards || '<div class="filter-stat-row"><span class="filter-stat-label" style="color: var(--gray-500);">No filter data yet</span></div>'}
                 </div>
             </div>
             <div class="filter-stat-card">

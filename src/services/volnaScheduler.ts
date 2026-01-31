@@ -132,7 +132,7 @@ async function fetchFromFilter(apiKey: string, filterId: string): Promise<any[]>
 }
 
 // Add a job URL to the queue (if not already exists)
-async function addJobToQueue(userId: string, jobUrl: string, volnaData?: any): Promise<boolean> {
+async function addJobToQueue(userId: string, jobUrl: string, volnaData?: any, sourceFilterId?: string): Promise<boolean> {
   try {
     // Check if job already exists
     const existing = await prismaInstance.job.findFirst({
@@ -147,14 +147,15 @@ async function addJobToQueue(userId: string, jobUrl: string, volnaData?: any): P
     const jobIdMatch = jobUrl.match(/~([a-zA-Z0-9]+)/);
     const jobId = jobIdMatch ? `~${jobIdMatch[1]}` : null;
     
-    // Create job record with Volna metadata for fallback
+    // Create job record with Volna metadata for fallback and source filter ID
     await prismaInstance.job.create({
       data: {
         userId,
         jobUrl,
         jobId,
         status: 'queued',
-        volnaData: volnaData || null
+        volnaData: volnaData || null,
+        sourceFilterId: sourceFilterId || null
       }
     });
     
@@ -196,8 +197,8 @@ async function runFetchCycle(): Promise<void> {
       return;
     }
     
-    // Fetch from all filters
-    const allProjects: any[] = [];
+    // Fetch from all filters - track which filter each project came from
+    const allProjects: Array<{ project: any; filterId: string }> = [];
     const seenUrls = new Set<string>();
     
     for (const filterId of config.filterIds) {
@@ -206,7 +207,7 @@ async function runFetchCycle(): Promise<void> {
       for (const project of projects) {
         if (project.url && !seenUrls.has(project.url)) {
           seenUrls.add(project.url);
-          allProjects.push(project);
+          allProjects.push({ project, filterId });
         }
       }
     }
@@ -218,7 +219,7 @@ async function runFetchCycle(): Promise<void> {
       if (userId) {
         let addedCount = 0;
         
-        for (const project of allProjects) {
+        for (const { project, filterId } of allProjects) {
           if (project.url) {
             // Extract Volna metadata to store as fallback
             const volnaData = {
@@ -233,7 +234,7 @@ async function runFetchCycle(): Promise<void> {
               budget_amount: project.budget?.amount
             };
             
-            const added = await addJobToQueue(userId, project.url, volnaData);
+            const added = await addJobToQueue(userId, project.url, volnaData, filterId);
             if (added) addedCount++;
           }
         }

@@ -1482,3 +1482,54 @@ input[type="time"] {
         grid-template-columns: 1fr;
     }
 }
+
+/* Per-Filter Stats Grid */
+.filter-stat-card.full-width {
+    grid-column: 1 / -1;
+}
+
+.per-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.per-filter-card {
+    background: var(--gray-50);
+    border-radius: 8px;
+    padding: 0.75rem;
+    border-left: 3px solid var(--primary);
+}
+
+.per-filter-card .filter-stat-header {
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.per-filter-card .filter-stat-id {
+    font-size: 0.85rem;
+}
+
+.per-filter-card .filter-stat-row {
+    padding: 0.25rem 0;
+}
+
+.per-filter-card .filter-stat-label {
+    font-size: 0.75rem;
+}
+
+.per-filter-card .filter-stat-value {
+    font-size: 0.85rem;
+}
+
+.filter-stat-badge.legacy {
+    background: var(--gray-400);
+    color: white;
+}
+
+.filter-stat-badge.active {
+    background: var(--success);
+    color: white;
+}
