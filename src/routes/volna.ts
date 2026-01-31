@@ -359,10 +359,13 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
         last24Hours: processedJobs.length,
         byHourUTC: hourlyProcessed
       },
+      filterIds: config.filterIds,
       timeRanges: {
         now: now.toISOString(),
+        nowFormatted: now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC',
         oneHourAgo: oneHourAgo.toISOString(),
-        twentyFourHoursAgo: twentyFourHoursAgo.toISOString()
+        twentyFourHoursAgo: twentyFourHoursAgo.toISOString(),
+        twentyFourHoursAgoFormatted: twentyFourHoursAgo.toISOString().replace('T', ' ').substring(0, 19) + ' UTC'
       }
     });
   } catch (error: any) {

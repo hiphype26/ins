@@ -189,8 +189,13 @@ async function loadVolnaFilterStats() {
         const byStatus = db.byStatus || {};
         const processed = response.processed || {};
         const byHourUTC = processed.byHourUTC || {};
+        const filterIds = response.filterIds || [];
         
-        // Build hourly rows (group into 2-hour blocks for readability)
+        // Format current time for display
+        const nowFormatted = timeRanges.nowFormatted || new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+        const twentyFourAgoFormatted = timeRanges.twentyFourHoursAgoFormatted || '';
+        
+        // Build hourly rows
         const hourlyRows = [];
         for (let h = 0; h < 24; h += 1) {
             const count = byHourUTC[h] || 0;
@@ -206,7 +211,26 @@ async function loadVolnaFilterStats() {
             }
         }
         
+        // Build filter IDs display
+        const filterIdsDisplay = filterIds.length > 0 
+            ? filterIds.map(id => `<span class="filter-id-tag">#${id}</span>`).join(' ')
+            : '<span style="color: var(--gray-500);">None configured</span>';
+        
         container.innerHTML = `
+            <div class="filter-stat-card">
+                <div class="filter-stat-header">
+                    <span class="filter-stat-id">Volna Filter IDs</span>
+                    <span class="filter-stat-badge">Config</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Active Filters</span>
+                    <span class="filter-stat-value">${filterIdsDisplay}</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Current Time (UTC)</span>
+                    <span class="filter-stat-value time-display">${nowFormatted}</span>
+                </div>
+            </div>
             <div class="filter-stat-card">
                 <div class="filter-stat-header">
                     <span class="filter-stat-id">Jobs Saved in System</span>
@@ -252,7 +276,11 @@ async function loadVolnaFilterStats() {
                     <span class="filter-stat-badge">Last 24h</span>
                 </div>
                 <div class="filter-stat-row">
-                    <span class="filter-stat-label">Total processed (24h)</span>
+                    <span class="filter-stat-label">Date Range</span>
+                    <span class="filter-stat-value time-display">${twentyFourAgoFormatted} → Now</span>
+                </div>
+                <div class="filter-stat-row">
+                    <span class="filter-stat-label">Total processed</span>
                     <span class="filter-stat-value highlight">${processed.last24Hours || 0}</span>
                 </div>
                 <div class="filter-stat-divider">By Hour (UTC)</div>

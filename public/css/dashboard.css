@@ -1394,3 +1394,21 @@ input[type="time"] {
     margin-top: 8px;
     border-top: 1px solid var(--gray-200);
 }
+
+/* Filter ID tags */
+.filter-id-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--primary);
+    color: white;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    margin-right: 4px;
+}
+
+.time-display {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--gray-600);
+}
