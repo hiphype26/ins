@@ -372,7 +372,7 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
 });
 
 // Debug endpoint - show raw dates from Volna
-router.get('/debug-dates', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.get('/debug-dates', authenticateToken, async (req: Request, res: Response) => {
   try {
     const config = await getVolnaConfig(req.app.get('prisma'));
     
